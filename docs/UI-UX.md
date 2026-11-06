@@ -335,6 +335,15 @@ Dos tarjetas: **Descargar respaldo completo** (`.dump`, para restaurar con `pg_r
 | `CIERRE_ANUAL_INCOMPLETO` | Cierra los 12 meses antes del cierre anual. |
 | `CIERRE_CON_SALDO_CERO_CON_COSTO` | No se puede cerrar {mes}: hay movimientos con saldo cero y costo. Revísalos en el kardex (lista abajo). |
 | `VIGENCIA_SUPERPUESTA` | Ya existe una regla vigente en esas fechas para el mismo tipo, producto y operación. Cierra la anterior con "vigente hasta". |
+| `VIGENCIA_INVALIDA` | La vigencia no es válida: usa AAAA-MM y que "vigente hasta" no sea anterior a "vigente desde". |
+| `OPERACION_NO_CORRESPONDE` | La operación no corresponde al tipo de asiento (costo de ventas: 01 o 17 · merma: 13 · desmedro: 14 · ajustes: 28). |
+| `PRODUCTO_INEXISTENTE` | Ese producto no existe o está inactivo. |
+| `CODIGO_SUNAT_INVALIDO` | Uno de los códigos SUNAT (Tabla 5, 6 o 14) no es válido. |
+| `CUENTA_INVALIDA` | La cuenta contable debe tener de 2 a 12 dígitos. |
+| `TERCERO_DUPLICADO` | Ya existe un cliente o proveedor con ese documento. |
+| `TERCERO_PROTEGIDO` | "CLIENTES VARIOS" no puede cambiar de documento ni de nombre. |
+| `PRODUCTO_DUPLICADO` | Ya existe un producto con ese código. |
+| `ESTABLECIMIENTO_DUPLICADO` | Ya existe un establecimiento con ese código. |
 | `SALDO_INICIAL_REQUIERE_CONFIRMACION` | (paso 3 del asistente) El saldo inicial de {año+1} ya existe y es distinto. ¿Reemplazarlo? |
 | `COMPROBANTE_ANULADO` | Ese comprobante está anulado: ya no se puede editar ni mover. |
 | `REORDEN_FUERA_DE_FECHA` | Solo se puede mover dentro de la misma fecha. |

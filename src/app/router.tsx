@@ -1,9 +1,13 @@
 // React Router 8 en modo datos (docs/UI-UX.md §3). Todo el módulo cuelga de /inventario.
-import type { ReactNode } from 'react'
+// Las pantallas desde el S7 se cargan bajo demanda (pantallas-diferidas.tsx).
+import { Suspense, type ReactNode } from 'react'
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router'
 import { LayoutApp, type DatosRuta } from './layout/layout-app'
 import { PaginaNoEncontrada } from './pagina-no-encontrada'
 import { INICIO, PAGINAS_DEL_MODULO, RAIZ_MODULO } from './paginas'
+import {
+  CargandoPantalla, PaginaConfiguracion, PaginaEstablecimientos, PaginaProductos, PaginaReglas, PaginaTerceros, PaginaUsuarios,
+} from './pantallas-diferidas'
 import { RaizApp } from './raiz-app'
 import { RutaProtegida } from './ruta-protegida'
 import { EnConstruccion } from '@/componentes/comunes/en-construccion'
@@ -14,9 +18,17 @@ import { PaginaImportacion } from '@/funcionalidades/importacion/pagina-importac
 
 const relativa = (ruta: string) => ruta.slice(RAIZ_MODULO.length + 1)
 
+const diferida = (pantalla: ReactNode) => <Suspense fallback={<CargandoPantalla />}>{pantalla}</Suspense>
+
 /** Pantallas ya implementadas, por ruta completa. Las demás muestran "En construcción". */
 const PANTALLAS: Record<string, ReactNode> = {
   [`${RAIZ_MODULO}/configuracion/importacion`]: <PaginaImportacion />,
+  [`${RAIZ_MODULO}/maestros/productos`]: diferida(<PaginaProductos />),
+  [`${RAIZ_MODULO}/maestros/terceros`]: diferida(<PaginaTerceros />),
+  [`${RAIZ_MODULO}/maestros/reglas-contables`]: diferida(<PaginaReglas />),
+  [`${RAIZ_MODULO}/maestros/establecimientos`]: diferida(<PaginaEstablecimientos />),
+  [`${RAIZ_MODULO}/configuracion`]: diferida(<PaginaConfiguracion />),
+  [`${RAIZ_MODULO}/configuracion/usuarios`]: diferida(<PaginaUsuarios />),
 }
 
 export const rutas: RouteObject[] = [

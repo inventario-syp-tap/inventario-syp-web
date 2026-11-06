@@ -94,6 +94,21 @@ export function formatearFecha(fecha: string | null | undefined): string {
   return partes ? `${partes[3]}/${partes[2]}/${partes[1]}` : fecha
 }
 
+const FECHA_HORA = new Intl.DateTimeFormat('es-PE', {
+  day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false,
+})
+
+/**
+ * Instante ISO completo de la API ("2026-10-20T14:30:00.000Z": último acceso, vencimientos) en la hora local:
+ * "20/10/2026 09:30". Solo para instantes con hora y zona; las fechas de negocio usan formatearFecha.
+ */
+export function formatearFechaHora(instante: string | null | undefined): string {
+  if (!instante) return SIN_VALOR
+  const milisegundos = Date.parse(instante)
+  if (!Number.isFinite(milisegundos)) return instante
+  return FECHA_HORA.format(milisegundos).replace(',', '')
+}
+
 /** dd/mm/aaaa → YYYY-MM-DD (null si no tiene ese formato). */
 export function fechaAIso(texto: string): string | null {
   const partes = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(texto.trim())

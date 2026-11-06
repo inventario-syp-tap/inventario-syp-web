@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ErrorApi, mensajeDeError } from './errores'
+import { camposConError, ErrorApi, mensajeDeError } from './errores'
 
 describe('mensajes de error (docs/UI-UX.md §6)', () => {
   it('traduce el código de la API al mensaje en español', () => {
@@ -25,5 +25,20 @@ describe('mensajes de error (docs/UI-UX.md §6)', () => {
 
   it('error que no es de la API: mensaje genérico', () => {
     expect(mensajeDeError(new Error('boom'))).toBe('Ocurrió un error inesperado. Intenta de nuevo.')
+  })
+})
+
+describe('códigos del S7', () => {
+  it('tienen mensaje en español', () => {
+    for (const codigo of ['TERCERO_DUPLICADO', 'PRODUCTO_DUPLICADO', 'ESTABLECIMIENTO_DUPLICADO', 'CODIGO_SUNAT_INVALIDO',
+      'CUENTA_INVALIDA', 'OPERACION_NO_CORRESPONDE', 'VIGENCIA_SUPERPUESTA', 'SIN_PERMISO']) {
+      expect(mensajeDeError(new ErrorApi(409, codigo, 'texto de la API'))).not.toBe('texto de la API')
+    }
+  })
+
+  it('camposConError lee detalle.campos en sus dos formas', () => {
+    expect(camposConError(new ErrorApi(400, 'VALIDACION', 'x', { campos: { codigo: ['Muy largo'] } }))).toEqual({ codigo: 'Muy largo' })
+    expect(camposConError(new ErrorApi(400, 'VALIDACION', 'x', { campos: [{ campo: 'nombre', mensaje: 'Vacío' }] }))).toEqual({ nombre: 'Vacío' })
+    expect(camposConError(new ErrorApi(409, 'TERCERO_DUPLICADO', 'x'))).toEqual({})
   })
 })
