@@ -6,6 +6,13 @@ export const CLAVES = {
   periodos: ['periodos'],
   comprobantes: ['comprobantes'],
   paridad: ['importacion', 'paridad'],
+  catalogos: ['catalogos'],
+  productos: ['productos'],
+  terceros: ['terceros'],
+  reglas: ['reglas-contables'],
+  establecimientos: ['establecimientos'],
+  configuracion: ['configuracion'],
+  usuarios: ['usuarios'],
 } as const
 
 /** Lo que cambia cuando se registra, edita, anula o cierra algo (o se carga el histórico). */

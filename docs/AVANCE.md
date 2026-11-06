@@ -12,7 +12,7 @@
 | S5 Base de la web | ✅ terminado | `sprint/05-base-web` | 25/10/2026 |
 | S5 Corrección del CI (fix-ci) | ✅ terminado | `sprint/05-fix-ci` | 25/10/2026 |
 | S6 Nube temprana (WEB) | ✅ terminado | `sprint/06-nube` | 27/10/2026 |
-| S7 Maestros (WEB) | pendiente | `sprint/07-maestros` | |
+| S7 Maestros (WEB) | ✅ terminado | `sprint/07-maestros` | 06/11/2026 |
 | S8 Operaciones (WEB) | pendiente | `sprint/08-operaciones` | |
 | S9 Kardex y periodos (WEB) | pendiente | `sprint/09-kardex-periodos` | |
 | S10 Libros y reportes (WEB) | pendiente | `sprint/10-libros-reportes` | |
@@ -161,3 +161,80 @@ pnpm run dev  →  http://localhost:5173/inventario/configuracion/importacion   
 5. Con la API en modo demostración (`pnpm run start:demo`) los dos botones muestran el aviso de demostración.
 
 **Números**: 81 pruebas en 9 archivos (página de importación 11, menú +3, cliente +2, formato +4).
+
+### S07 — maestros (06/11/2026)
+
+Rama `sprint/07-maestros`. Tipos regenerados con `pnpm run api:tipos` (26 rutas del S7 de la API).
+
+**Qué se hizo**
+- **Pantallas** (cargadas bajo demanda desde `src/app/pantallas-diferidas.tsx`):
+  - **Productos** (`/inventario/maestros/productos`): stock, valor, CU, último movimiento y alertas (ícono y texto) desde `GET /productos/stock`, con selector de establecimiento. El código queda en solo lectura al editar. Tablas 5, 6 y 14 desde `/catalogos`; en la 14 solo el método 1. Crear y editar: A y C.
+  - **Clientes y proveedores** (`/inventario/maestros/terceros`): la API pagina y busca (`?q=` con espera de 300 ms, filtro de rol). Validación en vivo con `GET /terceros/validar-documento`: 400 ms después de escribir y solo con el largo completo. Muestra "Documento válido", "Ya existe…" o el mensaje de RUC o DNI inválido, con `aria-live`. Con **tipo 0** no hay campo de número y se envía `null`. La razón social se guarda en mayúsculas y al editar solo va lo que cambió. Un 409 `TERCERO_DUPLICADO` se muestra junto al número. Crear y editar: A, C y S.
+  - **Reglas contables** (`/inventario/maestros/reglas-contables`): **crear** con todos los campos y las operaciones filtradas por tipo de asiento (01/17, 13, 14, 28). **Editar** solo vigente hasta, decisión y descripción; el resto se muestra en solo lectura. **Cerrar regla** = poner vigente hasta. Estado Vigente o Cerrada con ícono y texto. Ante 409 `VIGENCIA_SUPERPUESTA` el diálogo muestra el mensaje, la vigencia pedida y las vigencias de las otras reglas del mismo tipo, producto y operación. A y C.
+  - **Establecimientos** (`/inventario/maestros/establecimientos`): todos ven la lista; solo ADMIN crea y edita. El código (4 dígitos) no cambia y se propone el texto del libro `<código>-<nombre>`.
+  - **Configuración** (`/inventario/configuracion`): pestañas Empresa, Libro 12.1 (con modo por año, `PUT libro-modo/:anio`), WinConta (19 columnas fijas) y Toma de inventario. Cada pestaña hace PATCH solo con su sección. **CONTADOR**: Libro y WinConta editables; Empresa y Toma en solo lectura (fieldset deshabilitado, sin Guardar y con el aviso "Solo lectura…"). Para él la página abre en Libro 12.1.
+  - **Usuarios** (`/inventario/configuracion/usuarios`, ADMIN): crear con roles; editar nombre y roles; activar o desactivar con confirmación; restablecer la contraseña con confirmación. La **temporal se muestra una sola vez** con botón Copiar y el aviso "No se volverá a mostrar". "Temporal vencida: restablécela" sale cuando `passwordTemporalExpira` ya pasó. El ADMIN no ve "Desactivar" en su fila y no puede desmarcar su rol ADMIN.
+- **Comunes** (`src/componentes/comunes/`):
+  - `TablaDatos`: TanStack Table 8, con búsqueda (la tecla `/` la enfoca; sin distinguir tildes) y orden con botones y `aria-sort`. Paginación del cliente o del servidor, `caption`, `scope`, cifras a la derecha, cabecera fija, esqueleto y estado vacío.
+  - `CampoDecimal` (con `lib/decimales.ts`), `SelectorTercero` (combobox con "+ Nuevo") y `Cifra`.
+  - `IconoAlerta`, `CampoSelect` (`<select>` nativo), `Campo`, `CampoCasilla`, `DialogoFormulario` (Ctrl+Enter, Guardar deshabilitado al enviar, foco de vuelta al disparador), `EncabezadoPagina` y `EstadoActivo`.
+  - `DialogoConfirmacion` ahora tiene `motivo: 'opcional' | 'obligatorio'` y `destructiva`.
+  - `hooks/use-dialogo.ts`: abre el diálogo, cuenta las aperturas para usarlas como `key` y recuerda el disparador.
+- **Permisos**: `lib/roles.ts` → `PERMISOS`, `puede()` y `usePuede()` (`productos:editar` A C · `terceros:editar` A C S · `reglas:editar` A C · `establecimientos:editar` A · `configuracion:empresa|toma` A · `configuracion:libro|winconta` A C · `usuarios:administrar` A).
+- **Mensajes** (`lib/errores.ts` y UI-UX §6): `TERCERO_DUPLICADO`, `TERCERO_PROTEGIDO`, `PRODUCTO_DUPLICADO`, `ESTABLECIMIENTO_DUPLICADO`, `CODIGO_SUNAT_INVALIDO`, `CUENTA_INVALIDA`, `OPERACION_NO_CORRESPONDE`, `VIGENCIA_INVALIDA` y `PRODUCTO_INEXISTENTE` (`VIGENCIA_SUPERPUESTA` y `SIN_PERMISO` ya estaban). `camposConError` + `aplicarErrorDeApi` (`lib/formularios.ts`) colocan cada campo de un 400 `VALIDACION` junto a su control.
+- `lib/formato.ts`: `formatearFechaHora` para instantes ISO (último acceso, vencimiento de la temporal).
+- Pruebas: `src/pruebas/api-falsa.tsx` reemplaza `solicitar` y responde por ruta, así que los hooks reales de TanStack Query entran en la prueba. `configurar.ts` agrega lo mínimo de `ResizeObserver`, `scrollIntoView` y *pointer capture* para Radix y cmdk.
+- `docs/CONTRATO-API.md` §6.2 (maestros, configuración y usuarios).
+
+**Decisiones**
+- **`<select>` nativo** (`CampoSelect`) en lugar del Select de Radix en los formularios. Es accesible con teclado y lector de pantalla sin trabajo extra, funciona con `register` y se prueba en jsdom. El combobox con búsqueda (`SelectorTercero`) sí usa `command` + `popover`.
+- **Vigencia AAAA-MM como texto** (no `type="month"`, que Firefox de escritorio no muestra igual). AAAA-MM se compara como texto porque el orden alfabético coincide con el cronológico. El cruce de vigencias lo decide la API.
+- **Diálogos remontados por `key`** en cada apertura, en lugar de reiniciarlos con `useEffect`: el formulario nace limpio y el lint no avisa `set-state-in-effect`.
+- **PATCH con solo lo que cambió** en productos, terceros, reglas, establecimientos y usuarios, porque la API valida documento, códigos y cuentas solo si cambian. Un "Guardar" sin cambios cierra el diálogo sin llamar a la API.
+- **Contraseña temporal fuera de la caché**: las mutaciones que la traen usan `gcTime: 0` y `reset()`, y vive solo en el estado del diálogo.
+- **Stock**: la web solo junta producto con fila de stock del establecimiento elegido (por defecto, el primero activo). No suma ni calcula nada.
+- **Configuración**: los enteros (decimales, mm, meses) se escriben como texto y se convierten con `parseInt` al enviar; no son importes. La tolerancia en TN viaja como string decimal (`CampoDecimal`, 4 decimales).
+- Bundle principal: 719 kB → **472 kB** (el pendiente del S05), con `React.lazy` + `Suspense` y un esqueleto mientras carga.
+- `02-REGLAS-DE-NEGOCIO.md` §17 no se puede leer desde este repo (lo bloquea `proteger-lectura`): los códigos se tomaron del AVANCE del S7 de la API.
+- Advertencia de oxlint `incompatible-library` en `tabla-datos.tsx`: es propia de TanStack Table con el React Compiler. Sin cambios.
+
+**Pendientes**
+- Capturas `S07-productos.png`, `S07-terceros-ruc.png`, `S07-reglas-vigencia.png` y `S07-configuracion.png`, solo con la base de demostración. Cada una se registra en `docs/archivos-revisados.txt`.
+- S8: usar `SelectorTercero` en Compra y Venta, y `DialogoConfirmacion` con motivo obligatorio en Anular.
+- S9: la API responderá 409 `PERIODO_CERRADO` si la vigencia de una regla toca un mes cerrado (D-29). Su mensaje ya existe en `lib/errores.ts`.
+
+**Cómo probar**
+```
+pnpm run lint ; pnpm test ; pnpm run build ; pnpm run revisar:datos
+node .claude/hooks/probar-hooks.mjs
+pnpm run dev  →  http://localhost:5173/inventario/maestros/productos   (API con pnpm run start:dev o start:demo)
+```
+1. Como ADMIN (`admin@syp.invalid`): crea un establecimiento, un producto, un proveedor y una regla.
+   - Proveedor: escribe `20000000028` y debe salir "Documento válido."; con `20000000010` sale "Ya existe…".
+   - Regla: una con vigencia cruzada debe mostrar el 409 con las fechas.
+2. En **Usuarios**, crea `contadora.prueba@syp.invalid` con el rol Contador. Copia la temporal (se muestra una sola vez), cierra sesión, entra con ella y cámbiala.
+3. Como esa CONTADOR:
+   - edita productos, terceros y reglas, y guarda Libro 12.1 y WinConta;
+   - Empresa y Toma de inventario se ven en solo lectura;
+   - no ve Usuarios, Importación ni los botones de Establecimientos.
+4. `consulta.demo@syp.invalid` (base demo): solo listas, sin Nuevo, Editar ni Cerrar.
+5. Solo con teclado: `/` enfoca el buscador, Enter ordena desde el encabezado, Ctrl+Enter guarda y Esc cierra el diálogo con el foco de vuelta al botón.
+
+**Revisión `revisor-ux`**: APROBADO CON OBSERVACIONES, sin hallazgos altos ni datos reales. Se corrigieron los 5 de severidad media:
+- Terceros: el error "Marca si es proveedor, cliente o ambos" se asocia al fieldset y a las dos casillas (`aria-describedby` y `aria-invalid`). "Activo" sale del grupo "Rol".
+- WCAG 2.5.3 (el nombre accesible contiene el texto visible): «Cerrar regla RC-nn» y «Restablecer contraseña de …».
+- Contraseña temporal: un clic fuera ya no cierra el diálogo (Esc sí, por §6).
+- Configuración: las pestañas quedan montadas (`forceMount` + `hidden`), así que cambiar de pestaña no borra lo que no se guardó. El `reset` tras guardar usa `keepDirtyValues`. Lo cubre una prueba nueva.
+
+También se corrigieron tres de severidad baja:
+- Los errores de Usuarios persisten (`duration: Infinity`).
+- `TablaDatos` muestra "Sin datos para mostrar." (no "Aún no hay…") cuando falla la carga.
+- En `SelectorTercero`, `aria-controls` solo se pone con el popover abierto.
+
+Bajas pendientes:
+- Marcar en su campo los 400 `VALIDACION` de PATCH /configuracion.
+- Acción "Nuevo …" dentro de los estados vacíos.
+- Bloquear los botones de la fila de Usuarios mientras se guarda.
+- Estado "Desde {mes}" para reglas con vigencia futura.
+
+**Números**: 143 pruebas en 19 archivos (+62: tabla 7, campo decimal 4, confirmación 3, selector 3, terceros 10, productos 5, establecimientos 3, reglas 8, configuración 8, usuarios 7, roles +1, errores +2, formato +1). Cobertura total 88,2 % de líneas; `tabla-datos.tsx` 96 %, `roles.ts` 100 %.

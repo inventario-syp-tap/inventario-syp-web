@@ -249,6 +249,216 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/inventario/v1/configuracion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Configuración: política de stock, libro 12.1, asientos, WinConta y toma de inventario */
+        get: operations["ConfiguracionController_obtener"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edita la configuración. ADMIN: todas las secciones; CONTADOR: solo libro y winconta (otra sección → 403) */
+        patch: operations["ConfiguracionController_actualizar"];
+        trace?: never;
+    };
+    "/api/inventario/v1/configuracion/libro-modo/{anio}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Modo del libro 12.1 de un año (AGRUPADO o DETALLADO) */
+        get: operations["ConfiguracionController_libroModo"];
+        /** Fija el modo del libro 12.1 de un año */
+        put: operations["ConfiguracionController_fijarLibroModo"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/establecimientos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista de establecimientos */
+        get: operations["EstablecimientosController_listar"];
+        put?: never;
+        /** Crea un establecimiento (409 ESTABLECIMIENTO_DUPLICADO si el código existe) */
+        post: operations["EstablecimientosController_crear"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/establecimientos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edita nombre, texto del libro o activo (el código no cambia) */
+        patch: operations["EstablecimientosController_editar"];
+        trace?: never;
+    };
+    "/api/inventario/v1/productos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista de productos */
+        get: operations["ProductosController_listar"];
+        put?: never;
+        /** Crea un producto (Tablas 5, 6 y 14 y cuentas validadas; 409 PRODUCTO_DUPLICADO) */
+        post: operations["ProductosController_crear"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/productos/stock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stock actual por producto y establecimiento: cantidad, costo, CU y alertas del año */
+        get: operations["ProductosController_stock"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/productos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edita un producto (el código no cambia; códigos SUNAT y cuentas se validan si cambian) */
+        patch: operations["ProductosController_editar"];
+        trace?: never;
+    };
+    "/api/inventario/v1/terceros": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista paginada; ?q= documento o razón social, ?rol=PROVEEDOR|CLIENTE */
+        get: operations["TercerosController_listar"];
+        put?: never;
+        /** Crea un tercero (422 RUC_INVALIDO / DOCUMENTO_INVALIDO; 409 TERCERO_DUPLICADO) */
+        post: operations["TercerosController_crear"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/terceros/validar-documento": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Valida formato y dígito verificador (RUC módulo 11, DNI de 8 dígitos) e indica si ya existe */
+        get: operations["TercerosController_validarDocumento"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/terceros/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edita un tercero (el documento se valida solo si cambia) */
+        patch: operations["TercerosController_editar"];
+        trace?: never;
+    };
+    "/api/inventario/v1/reglas-contables": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reglas contables con su vigencia */
+        get: operations["ReglasContablesController_listar"];
+        put?: never;
+        /** Crea una regla (código RC-nn automático; 409 VIGENCIA_SUPERPUESTA si se cruza con otra) */
+        post: operations["ReglasContablesController_crear"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/reglas-contables/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Cierra o reabre la vigencia (vigenteHasta) y corrige textos. Las reglas no se borran */
+        patch: operations["ReglasContablesController_editar"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -606,6 +816,669 @@ export interface components {
             /** @example 0 */
             totalDiferencias: number;
         };
+        EmpresaDatosDto: {
+            /** @example 20000000001 */
+            ruc: string;
+            /** @example EMPRESA DEMO S.A.C. */
+            razonSocial: string;
+        };
+        InventarioConfigDto: {
+            /**
+             * @description D-01
+             * @example PERMITIR_CON_ALERTA
+             * @enum {string}
+             */
+            politicaStockNegativo: "PERMITIR_CON_ALERTA" | "BLOQUEAR";
+            /**
+             * @description Redondeo del SI al cierre anual
+             * @example 2
+             */
+            decimalesRedondeoSiCosto: number;
+        };
+        MargenesMmDto: {
+            /** @example 30 */
+            superior: number;
+            /** @example 12 */
+            inferior: number;
+            /** @example 15 */
+            izquierdo: number;
+            /** @example 12 */
+            derecho: number;
+        };
+        ReservaSelloMmDto: {
+            /** @example 70 */
+            ancho: number;
+            /** @example 30 */
+            alto: number;
+        };
+        ImpresionLibroDto: {
+            /**
+             * @description D-08: las hojas legalizadas ya vienen numeradas
+             * @example false
+             */
+            imprimirFolio: boolean;
+            /**
+             * @example A4
+             * @enum {string}
+             */
+            papel: "A4";
+            /**
+             * @example HORIZONTAL
+             * @enum {string}
+             */
+            orientacion: "HORIZONTAL" | "VERTICAL";
+            margenesMm: components["schemas"]["MargenesMmDto"];
+            /** @description Espacio libre del sello del notario */
+            reservaSelloMm: components["schemas"]["ReservaSelloMmDto"];
+            /** @example 1 */
+            recordarImpresionMesesDespues: number;
+            /** @example 3 */
+            plazoLegalAtrasoMeses: number;
+        };
+        LibroConfigDto: {
+            /**
+             * @description D-03
+             * @example AGRUPADO
+             * @enum {string}
+             */
+            modoPorDefecto: "AGRUPADO" | "DETALLADO";
+            /**
+             * @description Tabla 6 (D-04)
+             * @example TNE
+             */
+            unidadMedida: string;
+            /**
+             * @description D-24
+             * @example 3
+             */
+            decimalesCantidad: number;
+            /**
+             * @description D-24 / PC-07
+             * @example 2
+             */
+            decimalesSaldo: number;
+            /** @example 2 */
+            decimalesTotales: number;
+            impresion: components["schemas"]["ImpresionLibroDto"];
+        };
+        AsientosConfigDto: {
+            /** @example true */
+            mermaEnAsientoSeparado: boolean;
+        };
+        WincontaRespuestaDto: {
+            /** @example 04 */
+            subdiario: string;
+            /** @example T */
+            tipoCp: string;
+            /** @example 00000000001 */
+            codigoCp: string;
+            /** @example PROVISIONES */
+            razonSocial: string;
+            /** @example 00 */
+            tipoDocumento: string;
+            /** @example  */
+            serie: string;
+            /** @example CV{MM}{AAAA} */
+            plantillaNumeroComprobante: string;
+            /** @example PROVISION COSTO DE VENTAS {MES} {AAAA} */
+            plantillaGlosa: string;
+            /** @example IT{AAAA} */
+            plantillaNumeroComprobanteMerma: string;
+            /** @example MERMA SEGUN INFORME TECNICO {AAAA} */
+            plantillaGlosaMerma: string;
+            /** @example DM{MM}{AAAA} */
+            plantillaNumeroComprobanteDesmedro: string;
+            /** @example DESMEDRO SEGUN ACTA {MES} {AAAA} */
+            plantillaGlosaDesmedro: string;
+            /** @example AJ{MM}{AAAA} */
+            plantillaNumeroComprobanteAjuste: string;
+            /** @example AJUSTE POR DIFERENCIA DE INVENTARIO {MES} {AAAA} */
+            plantillaGlosaAjuste: string;
+            /**
+             * @description S soles, D dólares
+             * @example S
+             * @enum {string}
+             */
+            moneda: "S" | "D";
+            /**
+             * @description Formato de importación de WinConta (D-20): no se edita
+             * @example 19
+             */
+            columnas: number;
+        };
+        TomaInventarioConfigDto: {
+            /**
+             * @description D-17: la toma de inventario es opcional
+             * @example false
+             */
+            obligatoria: boolean;
+            /** @example 11 */
+            recordarDesdeMes: number;
+            /**
+             * @description TN (string decimal)
+             * @example 0.01
+             */
+            toleranciaDiferenciaTn: string;
+        };
+        ConfiguracionDto: {
+            /** @description Solo lectura (semilla) */
+            empresa: components["schemas"]["EmpresaDatosDto"];
+            inventario: components["schemas"]["InventarioConfigDto"];
+            libro: components["schemas"]["LibroConfigDto"];
+            asientos: components["schemas"]["AsientosConfigDto"];
+            winconta: components["schemas"]["WincontaRespuestaDto"];
+            tomaInventario: components["schemas"]["TomaInventarioConfigDto"];
+            /** @example 2026-10-20T14:30:00.000Z */
+            actualizadoEn: string;
+        };
+        InventarioConfigParcialDto: {
+            /**
+             * @description D-01
+             * @example PERMITIR_CON_ALERTA
+             * @enum {string}
+             */
+            politicaStockNegativo?: "PERMITIR_CON_ALERTA" | "BLOQUEAR";
+            /**
+             * @description Redondeo del SI al cierre anual
+             * @example 2
+             */
+            decimalesRedondeoSiCosto?: number;
+        };
+        ImpresionLibroParcialDto: {
+            /**
+             * @description D-08: las hojas legalizadas ya vienen numeradas
+             * @example false
+             */
+            imprimirFolio?: boolean;
+            /**
+             * @example A4
+             * @enum {string}
+             */
+            papel?: "A4";
+            /**
+             * @example HORIZONTAL
+             * @enum {string}
+             */
+            orientacion?: "HORIZONTAL" | "VERTICAL";
+            margenesMm?: components["schemas"]["MargenesMmDto"];
+            /** @description Espacio libre del sello del notario */
+            reservaSelloMm?: components["schemas"]["ReservaSelloMmDto"];
+            /** @example 1 */
+            recordarImpresionMesesDespues?: number;
+            /** @example 3 */
+            plazoLegalAtrasoMeses?: number;
+        };
+        LibroConfigParcialDto: {
+            /**
+             * @description D-03
+             * @example AGRUPADO
+             * @enum {string}
+             */
+            modoPorDefecto?: "AGRUPADO" | "DETALLADO";
+            /**
+             * @description Tabla 6 (D-04)
+             * @example TNE
+             */
+            unidadMedida?: string;
+            /**
+             * @description D-24
+             * @example 3
+             */
+            decimalesCantidad?: number;
+            /**
+             * @description D-24 / PC-07
+             * @example 2
+             */
+            decimalesSaldo?: number;
+            /** @example 2 */
+            decimalesTotales?: number;
+            impresion?: components["schemas"]["ImpresionLibroParcialDto"];
+        };
+        AsientosConfigParcialDto: {
+            /** @example true */
+            mermaEnAsientoSeparado?: boolean;
+        };
+        WincontaConfigParcialDto: {
+            /** @example 04 */
+            subdiario?: string;
+            /** @example T */
+            tipoCp?: string;
+            /** @example 00000000001 */
+            codigoCp?: string;
+            /** @example PROVISIONES */
+            razonSocial?: string;
+            /** @example 00 */
+            tipoDocumento?: string;
+            /** @example  */
+            serie?: string;
+            /** @example CV{MM}{AAAA} */
+            plantillaNumeroComprobante?: string;
+            /** @example PROVISION COSTO DE VENTAS {MES} {AAAA} */
+            plantillaGlosa?: string;
+            /** @example IT{AAAA} */
+            plantillaNumeroComprobanteMerma?: string;
+            /** @example MERMA SEGUN INFORME TECNICO {AAAA} */
+            plantillaGlosaMerma?: string;
+            /** @example DM{MM}{AAAA} */
+            plantillaNumeroComprobanteDesmedro?: string;
+            /** @example DESMEDRO SEGUN ACTA {MES} {AAAA} */
+            plantillaGlosaDesmedro?: string;
+            /** @example AJ{MM}{AAAA} */
+            plantillaNumeroComprobanteAjuste?: string;
+            /** @example AJUSTE POR DIFERENCIA DE INVENTARIO {MES} {AAAA} */
+            plantillaGlosaAjuste?: string;
+            /**
+             * @description S soles, D dólares
+             * @example S
+             * @enum {string}
+             */
+            moneda?: "S" | "D";
+        };
+        TomaInventarioConfigParcialDto: {
+            /**
+             * @description D-17: la toma de inventario es opcional
+             * @example false
+             */
+            obligatoria?: boolean;
+            /** @example 11 */
+            recordarDesdeMes?: number;
+            /**
+             * @description TN (string decimal)
+             * @example 0.01
+             */
+            toleranciaDiferenciaTn?: string;
+        };
+        ActualizarConfiguracionDto: {
+            /** @description Solo ADMIN */
+            inventario?: components["schemas"]["InventarioConfigParcialDto"];
+            /** @description ADMIN y CONTADOR */
+            libro?: components["schemas"]["LibroConfigParcialDto"];
+            /** @description Solo ADMIN */
+            asientos?: components["schemas"]["AsientosConfigParcialDto"];
+            /** @description ADMIN y CONTADOR */
+            winconta?: components["schemas"]["WincontaConfigParcialDto"];
+            /** @description Solo ADMIN */
+            tomaInventario?: components["schemas"]["TomaInventarioConfigParcialDto"];
+        };
+        LibroModoDto: {
+            /** @example 2026 */
+            anio: number;
+            /**
+             * @example AGRUPADO
+             * @enum {string}
+             */
+            modo: "AGRUPADO" | "DETALLADO";
+            /**
+             * @description ANIO: fijado para ese año · POR_DEFECTO: el de la configuración
+             * @example POR_DEFECTO
+             * @enum {string}
+             */
+            origen: "ANIO" | "POR_DEFECTO";
+        };
+        FijarLibroModoDto: {
+            /**
+             * @example DETALLADO
+             * @enum {string}
+             */
+            modo: "AGRUPADO" | "DETALLADO";
+        };
+        EstablecimientoDto: {
+            /** @example 1 */
+            id: number;
+            /** @example 0001 */
+            codigo: string;
+            /** @example LOCAL DEMO */
+            nombre: string;
+            /** @example 0001-LOCAL DEMO */
+            textoLibro: string;
+            /** @example true */
+            activo: boolean;
+        };
+        CrearEstablecimientoDto: {
+            /**
+             * @description Código de 4 dígitos
+             * @example 0002
+             */
+            codigo: string;
+            /** @example ALMACEN DEMO */
+            nombre: string;
+            /**
+             * @description Texto del encabezado del libro 12.1. Si no se envía: "<codigo>-<nombre>"
+             * @example 0002-ALMACEN DEMO
+             */
+            textoLibro?: string;
+        };
+        EditarEstablecimientoDto: {
+            /** @example ALMACEN DEMO */
+            nombre?: string;
+            /** @example 0002-ALMACEN DEMO */
+            textoLibro?: string;
+            /** @example true */
+            activo?: boolean;
+        };
+        ProductoDto: {
+            /** @example 1 */
+            id: number;
+            /** @example D-FIERRO */
+            codigo: string;
+            /** @example DEMO 001 */
+            codigoLibro: string;
+            /** @example CHATARRA DE FIERRO */
+            descripcion: string;
+            /** @example 01 */
+            tipoExistencia: string;
+            /** @example TNE */
+            unidadMedida: string;
+            /** @example 1 */
+            metodoValuacion: string;
+            /** @example 201101 */
+            cuentaInventario: string;
+            /** @example 691101 */
+            cuentaCostoVentas: string;
+            /** @example CHATARRA DE FIERRO (DEMO) */
+            denominacionContable: string;
+            /** @example true */
+            activo: boolean;
+        };
+        StockProductoDto: {
+            /** @example 1 */
+            productoId: number;
+            /** @example D-FIERRO */
+            codigo: string;
+            /** @example CHATARRA DE FIERRO */
+            descripcion: string;
+            /** @example 1 */
+            establecimientoId: number;
+            /** @example 0001 */
+            establecimientoCodigo: string;
+            /**
+             * @description Año del saldo (último movimiento o último saldo inicial); null sin datos
+             * @example 2026
+             */
+            anio: number | null;
+            /**
+             * @description Fecha del último movimiento registrado; null si solo hay saldo inicial
+             * @example 2026-03-31
+             */
+            fechaUltimoMovimiento: string | null;
+            /**
+             * @description TN (string decimal exacto)
+             * @example 12.5000
+             */
+            cantidad: string;
+            /**
+             * @description S/ (string decimal exacto)
+             * @example 3480.0000000000
+             */
+            costoTotal: string;
+            /**
+             * @description S/ por TN (string decimal exacto)
+             * @example 278.4000000000
+             */
+            costoUnitario: string;
+            /**
+             * @description Alertas distintas de los movimientos del año del saldo
+             * @example [
+             *       "STOCK_NEGATIVO"
+             *     ]
+             */
+            alertas: string[];
+        };
+        CrearProductoDto: {
+            /**
+             * @description Código del producto (letras, dígitos y guion). No se edita después
+             * @example D-PLOMO
+             */
+            codigo: string;
+            /** @example DEMO 004 */
+            codigoLibro: string;
+            /** @example CHATARRA DE PLOMO */
+            descripcion: string;
+            /**
+             * @description Tabla 5
+             * @default 01
+             * @example 01
+             */
+            tipoExistencia: string;
+            /**
+             * @description Tabla 6
+             * @default TNE
+             * @example TNE
+             */
+            unidadMedida: string;
+            /**
+             * @description Tabla 14. Solo 1 (promedio ponderado): es el método que calcula el sistema
+             * @default 1
+             * @example 1
+             */
+            metodoValuacion: string;
+            /**
+             * @description Cuenta de existencias (2 a 12 dígitos)
+             * @example 201104
+             */
+            cuentaInventario: string;
+            /**
+             * @description Cuenta de costo de ventas (2 a 12 dígitos)
+             * @example 691104
+             */
+            cuentaCostoVentas: string;
+            /** @example CHATARRA PLOMO (DEMO) */
+            denominacionContable: string;
+        };
+        EditarProductoDto: {
+            /** @example DEMO 004 */
+            codigoLibro?: string;
+            /** @example CHATARRA DE PLOMO */
+            descripcion?: string;
+            /**
+             * @description Tabla 5
+             * @example 01
+             */
+            tipoExistencia?: string;
+            /**
+             * @description Tabla 6
+             * @example TNE
+             */
+            unidadMedida?: string;
+            /**
+             * @description Tabla 14 (solo 1)
+             * @example 1
+             */
+            metodoValuacion?: string;
+            /** @example 201104 */
+            cuentaInventario?: string;
+            /** @example 691104 */
+            cuentaCostoVentas?: string;
+            /** @example CHATARRA PLOMO (DEMO) */
+            denominacionContable?: string;
+            /** @example true */
+            activo?: boolean;
+        };
+        TerceroDto: {
+            /** @example 1 */
+            id: number;
+            /** @example 6 */
+            tipoDocumento: string;
+            /** @example 20000000001 */
+            numeroDocumento: string | null;
+            /** @example PROVEEDOR DEMO S.A.C. */
+            razonSocial: string;
+            /** @example PE */
+            pais: string | null;
+            /** @example true */
+            esProveedor: boolean;
+            /** @example false */
+            esCliente: boolean;
+            /** @example AV. DEMO 123 */
+            direccion: string | null;
+            /** @example true */
+            activo: boolean;
+        };
+        TercerosPaginaDto: {
+            datos: components["schemas"]["TerceroDto"][];
+            /** @example 1 */
+            total: number;
+            /** @example 1 */
+            pagina: number;
+            /** @example 50 */
+            tamano: number;
+        };
+        DocumentoValidadoDto: {
+            /** @example true */
+            valido: boolean;
+            /**
+             * @description Número normalizado (null: tipo 0 sin número o documento inválido)
+             * @example 20000000001
+             */
+            numero: string | null;
+            /**
+             * @description Código del error si no es válido
+             * @example null
+             * @enum {string|null}
+             */
+            codigo: "DOCUMENTO_INVALIDO" | "RUC_INVALIDO" | null;
+            /** @example null */
+            mensaje: string | null;
+            /**
+             * @description Id del tercero que ya tiene ese documento (null si no existe)
+             * @example null
+             */
+            terceroId: number | null;
+        };
+        CrearTerceroDto: {
+            /**
+             * @description Tabla 2: 6 RUC, 1 DNI, 4 carné de extranjería, 7 pasaporte, 0 otros / exterior
+             * @example 6
+             * @enum {string}
+             */
+            tipoDocumento: "0" | "1" | "4" | "6" | "7" | "A";
+            /**
+             * @description Obligatorio salvo tipo 0 (cliente del exterior, D-12)
+             * @example 20000000001
+             */
+            numeroDocumento?: string | null;
+            /** @example PROVEEDOR DEMO S.A.C. */
+            razonSocial: string;
+            /** @example PE */
+            pais?: string | null;
+            /**
+             * @default false
+             * @example true
+             */
+            esProveedor: boolean;
+            /**
+             * @default false
+             * @example false
+             */
+            esCliente: boolean;
+            /** @example AV. DEMO 123 */
+            direccion?: string | null;
+        };
+        EditarTerceroDto: {
+            /**
+             * @description Tabla 2: 6 RUC, 1 DNI, 4 carné de extranjería, 7 pasaporte, 0 otros / exterior
+             * @example 6
+             * @enum {string}
+             */
+            tipoDocumento?: "0" | "1" | "4" | "6" | "7" | "A";
+            /** @example 20000000001 */
+            numeroDocumento?: string | null;
+            /** @example PROVEEDOR DEMO S.A.C. */
+            razonSocial?: string;
+            /** @example PE */
+            pais?: string | null;
+            /** @example true */
+            esProveedor?: boolean;
+            /** @example true */
+            esCliente?: boolean;
+            /** @example AV. DEMO 123 */
+            direccion?: string | null;
+            /** @example true */
+            activo?: boolean;
+        };
+        ReglaContableDto: {
+            /** @example 1 */
+            id: number;
+            /** @example RC-09 */
+            codigo: string;
+            /**
+             * @example COSTO_VENTAS
+             * @enum {string}
+             */
+            tipoAsiento: "COSTO_VENTAS" | "MERMA" | "DESMEDRO" | "AJUSTE_FALTANTE" | "AJUSTE_SOBRANTE";
+            /** @example 1 */
+            productoId: number;
+            /** @example D-FIERRO */
+            productoCodigo: string;
+            /** @example 01 */
+            tipoOperacion: string;
+            /** @example 691101 */
+            cuentaDebe: string;
+            /** @example 201101 */
+            cuentaHaber: string;
+            /** @example 2026-01 */
+            vigenteDesde: string;
+            /** @example null */
+            vigenteHasta: string | null;
+            /** @example demo */
+            decision: string;
+            /** @example Costo de ventas nacional - fierro (demo) */
+            descripcion: string;
+            /** @example true */
+            activo: boolean;
+        };
+        CrearReglaContableDto: {
+            /**
+             * @example COSTO_VENTAS
+             * @enum {string}
+             */
+            tipoAsiento: "COSTO_VENTAS" | "MERMA" | "DESMEDRO" | "AJUSTE_FALTANTE" | "AJUSTE_SOBRANTE";
+            /** @example 1 */
+            productoId: number;
+            /**
+             * @description Tabla 12: COSTO_VENTAS 01 o 17 · MERMA 13 · DESMEDRO 14 · AJUSTE_FALTANTE / AJUSTE_SOBRANTE 28
+             * @example 01
+             */
+            tipoOperacion: string;
+            /**
+             * @description 2 a 12 dígitos
+             * @example 691101
+             */
+            cuentaDebe: string;
+            /**
+             * @description 2 a 12 dígitos
+             * @example 201101
+             */
+            cuentaHaber: string;
+            /**
+             * @description AAAA-MM (inclusive)
+             * @example 2026-01
+             */
+            vigenteDesde: string;
+            /**
+             * @description AAAA-MM (inclusive); null = sin fin
+             * @example null
+             */
+            vigenteHasta?: string | null;
+            /**
+             * @description Sustento (código D-xx, PC-xx…)
+             * @example Decisión de ejemplo
+             */
+            decision: string;
+            /** @example Costo de ventas nacional - fierro (demo) */
+            descripcion: string;
+        };
+        EditarReglaContableDto: {
+            /**
+             * @description AAAA-MM (inclusive); null = sin fin. Se valida que no se cruce con otra regla
+             * @example 2026-12
+             */
+            vigenteHasta?: string | null;
+            /** @example Decisión de ejemplo */
+            decision?: string;
+            /** @example Costo de ventas nacional - fierro (demo) */
+            descripcion?: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -923,6 +1796,413 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ParidadDto"];
+                };
+            };
+        };
+    };
+    ConfiguracionController_obtener: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfiguracionDto"];
+                };
+            };
+        };
+    };
+    ConfiguracionController_actualizar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActualizarConfiguracionDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfiguracionDto"];
+                };
+            };
+        };
+    };
+    ConfiguracionController_libroModo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                anio: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibroModoDto"];
+                };
+            };
+        };
+    };
+    ConfiguracionController_fijarLibroModo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                anio: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FijarLibroModoDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibroModoDto"];
+                };
+            };
+        };
+    };
+    EstablecimientosController_listar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EstablecimientoDto"][];
+                };
+            };
+        };
+    };
+    EstablecimientosController_crear: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CrearEstablecimientoDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EstablecimientoDto"];
+                };
+            };
+        };
+    };
+    EstablecimientosController_editar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditarEstablecimientoDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EstablecimientoDto"];
+                };
+            };
+        };
+    };
+    ProductosController_listar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductoDto"][];
+                };
+            };
+        };
+    };
+    ProductosController_crear: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CrearProductoDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductoDto"];
+                };
+            };
+        };
+    };
+    ProductosController_stock: {
+        parameters: {
+            query?: {
+                /** @description Solo un establecimiento */
+                establecimientoId?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockProductoDto"][];
+                };
+            };
+        };
+    };
+    ProductosController_editar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditarProductoDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductoDto"];
+                };
+            };
+        };
+    };
+    TercerosController_listar: {
+        parameters: {
+            query?: {
+                pagina?: number;
+                tamano?: number;
+                /** @description Inicio del número de documento o parte de la razón social */
+                q?: string;
+                rol?: "PROVEEDOR" | "CLIENTE";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TercerosPaginaDto"];
+                };
+            };
+        };
+    };
+    TercerosController_crear: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CrearTerceroDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TerceroDto"];
+                };
+            };
+        };
+    };
+    TercerosController_validarDocumento: {
+        parameters: {
+            query: {
+                /** @description Tabla 2: 6 RUC, 1 DNI, 4 carné de extranjería, 7 pasaporte, 0 otros / exterior */
+                tipo: "0" | "1" | "4" | "6" | "7" | "A";
+                numero?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentoValidadoDto"];
+                };
+            };
+        };
+    };
+    TercerosController_editar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditarTerceroDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TerceroDto"];
+                };
+            };
+        };
+    };
+    ReglasContablesController_listar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReglaContableDto"][];
+                };
+            };
+        };
+    };
+    ReglasContablesController_crear: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CrearReglaContableDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReglaContableDto"];
+                };
+            };
+        };
+    };
+    ReglasContablesController_editar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditarReglaContableDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReglaContableDto"];
                 };
             };
         };

@@ -156,6 +156,35 @@ En `/usuarios` los roles van **sin prefijo** (`"CONTADOR"`); en el token y en `/
 - **Corte del proxy**: en la nube Vercel → Render puede cortar antes de 240 s con 502/504 aunque la API siga procesando. Por eso el POST va con `proxyPuedeCortar: true` (el 502 cuenta como "quizá llegó") y nunca se repite solo: 502, 504 o tiempo agotado → `SIN_RESPUESTA` y la pantalla avisa que espere 2–3 minutos y pulse «Verificar paridad». Volver a cargar no duplica (409 `HISTORICO_YA_CARGADO`).
 - No hay endpoint de "última carga" (pendiente para el S12).
 
+### 6.2 Maestros, configuración y usuarios (S7)
+
+Archivos: `src/api/{productos,terceros,reglas-contables,establecimientos,configuracion,catalogos,usuarios}.ts`. Claves de TanStack Query en `src/api/claves.ts`. Permisos de la pantalla en `lib/roles.ts` (`PERMISOS`, `puede`, `usePuede`), con la misma matriz que la API.
+
+| Llamada | Cuerpo / respuesta | Errores que la pantalla muestra |
+|---|---|---|
+| `GET /productos` | arreglo completo (sin paginar) | — |
+| `POST /productos` | `{codigo, codigoLibro, descripcion, tipoExistencia, unidadMedida, metodoValuacion, cuentaInventario, cuentaCostoVentas, denominacionContable}` | 409 `PRODUCTO_DUPLICADO` (junto al código), 422 `CODIGO_SUNAT_INVALIDO`, `CUENTA_INVALIDA` |
+| `PATCH /productos/:id` | solo lo que cambió (nunca `codigo`) + `activo` | ídem |
+| `GET /productos/stock?establecimientoId=` | `[{productoId, establecimientoId, anio, fechaUltimoMovimiento, cantidad, costoTotal, costoUnitario, alertas}]` (decimales string) | — |
+| `GET /terceros?q=&rol=&pagina=&tamano=` | `{datos, total, pagina, tamano}` (la API pagina y busca) | — |
+| `GET /terceros/validar-documento?tipo=&numero=` | `{valido, numero, codigo, mensaje, terceroId}`; la web la llama 400 ms después de escribir y solo con el largo completo (RUC 11, DNI 8) | `RUC_INVALIDO` / `DOCUMENTO_INVALIDO` en el campo; `terceroId` ≠ el propio → "Ya existe…" |
+| `POST /terceros` | `{tipoDocumento, numeroDocumento (null con tipo 0), razonSocial (MAYÚSCULAS), pais, esProveedor, esCliente, direccion}` | 409 `TERCERO_DUPLICADO` (junto al número), 422 `RUC_INVALIDO` / `DOCUMENTO_INVALIDO` |
+| `PATCH /terceros/:id` | solo lo que cambió (la API valida el documento solo si cambia) | 409 `TERCERO_PROTEGIDO` ("CLIENTES VARIOS") |
+| `GET /reglas-contables` | arreglo completo | — |
+| `POST /reglas-contables` | `{tipoAsiento, productoId (número), tipoOperacion, cuentaDebe, cuentaHaber, vigenteDesde "AAAA-MM", vigenteHasta "AAAA-MM" \| null, decision, descripcion}` | 409 `VIGENCIA_SUPERPUESTA` (con la vigencia pedida y las de las otras reglas del mismo tipo, producto y operación), 422 `OPERACION_NO_CORRESPONDE`, `VIGENCIA_INVALIDA`, `CUENTA_INVALIDA`, `PRODUCTO_INEXISTENTE` |
+| `PATCH /reglas-contables/:id` | solo `{vigenteHasta?, decision?, descripcion?}` que cambiaron. "Cerrar regla" = `{vigenteHasta}` | 409 `VIGENCIA_SUPERPUESTA` |
+| `GET / POST / PATCH /establecimientos` | `{codigo (4 dígitos, no cambia), nombre, textoLibro?}`; sin `textoLibro` la API arma `"<codigo>-<nombre>"` | 409 `ESTABLECIMIENTO_DUPLICADO` |
+| `GET /configuracion` | `{empresa (solo lectura), inventario, libro, asientos, winconta (columnas: 19 fijo), tomaInventario, actualizadoEn}` | — |
+| `PATCH /configuracion` | **una sección por pestaña**: Empresa → `{inventario, asientos}`; Libro → `{libro}`; WinConta → `{winconta}` (sin `columnas`); Toma → `{tomaInventario}` (`toleranciaDiferenciaTn` string) | 403 `SIN_PERMISO` si el CONTADOR tocara otra sección (la web no lo permite) |
+| `GET / PUT /configuracion/libro-modo/:anio` | `{anio, modo, origen: ANIO \| POR_DEFECTO}` / `{modo}` | — |
+| `POST /usuarios` | `{email, nombre, roles: ["CONTADOR"]}` → `{passwordTemporal, usuario}` | — |
+| `PATCH /usuarios/:id` | `{nombre?, roles?}` o `{activo}` | la API impide que un ADMIN se quite su rol o se desactive (la web tampoco lo ofrece) |
+| `POST /usuarios/:id/restablecer-password` | → `{passwordTemporal}` | — |
+
+- La **contraseña temporal** se muestra una sola vez en `DialogoPasswordTemporal` y se descarta al cerrarlo. Las mutaciones que la traen usan `gcTime: 0` y `reset()`, para que no quede en la caché de TanStack Query.
+- Un 400 `VALIDACION` con `detalle.campos` (`{campo: "mensaje"}` o `[{campo, mensaje}]`) se coloca junto a cada campo con `aplicarErrorDeApi` (`lib/formularios.ts`).
+- Después de guardar se invalidan las claves del recurso. Productos y establecimientos también invalidan `stock`.
+
 ## 7. Ejemplos (datos de demostración)
 
 `POST /comprobantes/compras`

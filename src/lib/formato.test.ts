@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  fechaAIso, formatearCU, formatearDecimal, formatearDiferencia, formatearDocumento, formatearEntero, formatearFecha, formatearPeriodo,
+  fechaAIso, formatearCU, formatearDecimal, formatearDiferencia, formatearDocumento, formatearEntero, formatearFecha, formatearFechaHora, formatearPeriodo,
   formatearSoles, formatearTipoCambio, formatearToneladas, leerDiferencia,
 } from './formato'
 
@@ -88,5 +88,12 @@ describe('formato es-PE (docs/UI-UX.md §9)', () => {
     expect(leerDiferencia('12.5')).toBe('12.500000, valor exacto 1.25 por 10 a la 1')
     expect(leerDiferencia('0')).toBe('0.000000')
     expect(leerDiferencia(null)).toBe('—')
+  })
+})
+
+describe('formatearFechaHora', () => {
+  it('muestra un instante ISO como dd/mm/aaaa hh:mm en la hora local', () => {
+    expect(formatearFechaHora('2026-10-20T14:30:00.000Z')).toMatch(/^\d{2}\/\d{2}\/2026 \d{2}:\d{2}$/)
+    expect(formatearFechaHora(null)).toBe('—')
   })
 })
