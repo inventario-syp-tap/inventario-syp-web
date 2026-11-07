@@ -185,6 +185,44 @@ Archivos: `src/api/{productos,terceros,reglas-contables,establecimientos,configu
 - Un 400 `VALIDACION` con `detalle.campos` (`{campo: "mensaje"}` o `[{campo, mensaje}]`) se coloca junto a cada campo con `aplicarErrorDeApi` (`lib/formularios.ts`).
 - Después de guardar se invalidan las claves del recurso. Productos y establecimientos también invalidan `stock`.
 
+### 6.3 Comprobantes (S8, `src/api/comprobantes.ts`)
+
+Pantallas en `src/funcionalidades/comprobantes/`. Decimales (cantidad, costo, valor de venta, tipo de cambio) **siempre string**, tal como se escribieron: la web no redondea. Permisos en `lib/roles.ts`: `compras:registrar` y `ventas:registrar` (A, C, S), `mermas:registrar` y `ajustes:registrar` (A, C), `comprobantes:anular` (A, C) y `puedeEditarComprobante` (A y C, todo lo registrado; S, solo compras y ventas).
+
+| Llamada | Cuerpo / respuesta |
+|---|---|
+| `POST /comprobantes/compras` | `{fecha, establecimientoId, serie, numero, terceroId, tipoComprobante: "01", guiaRemision?, ticketBalanza?, placaVehiculo?, observacion?, lineas: [{productoId, descripcion, cantidad, costoUnitario}]}` |
+| `POST /comprobantes/ventas` | como la compra + `tipoComprobante: "01"\|"03"`, `tipoOperacion: "01"\|"17"` (con `03` la web siempre envía `01`), `moneda`, `tipoCambio` (solo USD) y `lineas[].valorVentaUnitario` |
+| `POST /comprobantes/mermas` | `{fecha, establecimientoId, tipoOperacion: "13"\|"14", anioInforme (solo 13), sustento, lineas: [{productoId, descripcion, cantidad}]}` |
+| `POST /comprobantes/ajustes` | `{fecha, establecimientoId, sustento, lineas: [{productoId, descripcion, cantidad, tipoMovimiento, costoAlPromedio: true \| costoUnitario}]}` (salida: sin costo) |
+| `PATCH /comprobantes/:id` | **solo lo que cambió**; si cambian las líneas van todas, cada una con su `id` si se conserva (un precio vacío no se envía: la API conserva el guardado, D-11). Establecimiento y tipo de merma no se editan |
+| `POST /comprobantes/:id/anular` | `{motivo}` (obligatorio) |
+| `POST /comprobantes/simular-salida` | `{productoId, fecha, cantidad, establecimientoId}` → `{disponibleAntes, costoEstimado, saldoResultante, quedaNegativo…}`. No guarda; la venta la llama 400 ms después de escribir |
+| `GET /comprobantes?pagina&tamano&naturaleza&desde&hasta&terceroId&productoId&estado&q` | `{datos, total, pagina, tamano}` (la API pagina y filtra) |
+| `GET /comprobantes/:id` | cabecera + líneas con orden, costos y saldo después de cada movimiento |
+
+Las escrituras responden `{comprobante, kardex}`. Después de registrar, editar o anular se invalidan kardex, stock, dashboard, periodos, comprobantes y productos.
+
+**Dónde se muestra cada error** (`funcionalidades/comprobantes/errores-operacion.ts`, función pura con pruebas):
+
+| Error | En la pantalla |
+|---|---|
+| 409 `STOCK_NEGATIVO_REQUIERE_CONFIRMACION` | `DialogoStockNegativo` (producto, fecha, disponible antes, saldo resultante; detalle de §5). "Registrar de todos modos" reenvía **la misma petición** con `confirmarStockNegativo: true`. También al editar y al anular |
+| 409 `STOCK_INSUFICIENTE` (política BLOQUEAR) | aviso en el encabezado con producto, fecha y disponible; sin opción de confirmar |
+| 409 `PERIODO_CERRADO` | aviso en el encabezado con el mes según la fecha + error en Fecha |
+| 409 `ORDEN_EN_CONFLICTO` | aviso con **Reintentar**, que reenvía lo mismo (la API revirtió la transacción). Nunca se reintenta solo |
+| 409 `COMPROBANTE_DUPLICADO` | junto al Número ("Ya existe la factura F001-0000123 de este proveedor") o al año del informe (merma 13) |
+| 409 `COMPROBANTE_ANULADO` | aviso en el encabezado; el formulario queda en solo lectura |
+| 422 `PRECIO_VENTA_REQUERIDO` | en el valor de venta de la línea (`detalle.linea` si viene; si no, las líneas sin valor) |
+| 422 `TIPO_CAMBIO_REQUERIDO` · `SUSTENTO_REQUERIDO` · `SALDO_INICIAL_INEXISTENTE` · `TERCERO_INEXISTENTE` · `ESTABLECIMIENTO_INEXISTENTE` | junto a Tipo de cambio · Sustento · Fecha · Proveedor/Cliente · Establecimiento |
+| 422 `REORDEN_FUERA_DE_FECHA` | mensaje listo en `lib/errores.ts`; mover movimientos es del Kardex (S9) |
+| 403 `SIN_PERMISO` al editar siendo solo ASISTENTE | "Solo puedes editar las compras y ventas que registraste tú." |
+| 400 `VALIDACION` | cada campo junto a su control (`terceroId` → Proveedor/Cliente, `lineas.N.costoUnitario`/`valorVentaUnitario` → precio de la línea N) |
+
+Pendientes del contrato para la API del S9:
+- `ComprobanteDto` sin `creadoPorId`: la web no puede ocultar «Editar» al ASISTENTE en compras y ventas que no registró él (hoy lo decide el 403).
+- El OpenAPI no documenta `ORDEN_EN_CONFLICTO`, `TERCERO_INEXISTENTE` ni `ESTABLECIMIENTO_INEXISTENTE`, ni la forma de `detalle` de `STOCK_NEGATIVO_REQUIERE_CONFIRMACION` (la web usa la de §5 y tolera que falten datos).
+
 ## 7. Ejemplos (datos de demostración)
 
 `POST /comprobantes/compras`

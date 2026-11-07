@@ -109,6 +109,11 @@ export function formatearFechaHora(instante: string | null | undefined): string 
   return FECHA_HORA.format(milisegundos).replace(',', '')
 }
 
+const HOY_EN_LIMA = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima', year: 'numeric', month: '2-digit', day: '2-digit' })
+
+/** Hoy en Lima como "YYYY-MM-DD" (en-CA ya da ese orden; sin new Date('YYYY-MM-DD')). */
+export const hoyIso = (): string => HOY_EN_LIMA.format(Date.now())
+
 /** dd/mm/aaaa → YYYY-MM-DD (null si no tiene ese formato). */
 export function fechaAIso(texto: string): string | null {
   const partes = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(texto.trim())

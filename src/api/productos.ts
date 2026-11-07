@@ -9,6 +9,9 @@ export type StockProducto = components['schemas']['StockProductoDto']
 export type DatosCrearProducto = components['schemas']['CrearProductoDto']
 export type DatosEditarProducto = components['schemas']['EditarProductoDto']
 
+/** "FIERRO · Chatarra pesada" (selects y mensajes). */
+export const textoProducto = (producto: Pick<Producto, 'codigo' | 'descripcion'>) => `${producto.codigo} · ${producto.descripcion}`
+
 export const listarProductos = () => solicitar<Producto[]>('/productos')
 
 /** Stock actual por producto y establecimiento (sin filtro: todos los establecimientos). */

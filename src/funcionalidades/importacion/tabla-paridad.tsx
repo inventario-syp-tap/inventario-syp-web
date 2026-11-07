@@ -4,7 +4,7 @@
 // Cada comparación tiene dos caminos: lo guardado en la base (BD) y lo que recalcula el motor al leer.
 import { CircleCheckIcon, CircleXIcon } from 'lucide-react'
 import type { FilaParidad, Paridad } from '@/api/importacion'
-import { Aviso } from './aviso'
+import { Aviso } from '@/componentes/comunes/aviso'
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/componentes/ui/table'
 import { formatearDiferencia, formatearEntero, leerDiferencia } from '@/lib/formato'
 

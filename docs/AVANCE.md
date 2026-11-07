@@ -13,7 +13,7 @@
 | S5 Corrección del CI (fix-ci) | ✅ terminado | `sprint/05-fix-ci` | 25/10/2026 |
 | S6 Nube temprana (WEB) | ✅ terminado | `sprint/06-nube` | 27/10/2026 |
 | S7 Maestros (WEB) | ✅ terminado | `sprint/07-maestros` | 06/11/2026 |
-| S8 Operaciones (WEB) | pendiente | `sprint/08-operaciones` | |
+| S8 Operaciones (WEB) | ✅ terminado | `sprint/08-operaciones` | 07/11/2026 |
 | S9 Kardex y periodos (WEB) | pendiente | `sprint/09-kardex-periodos` | |
 | S10 Libros y reportes (WEB) | pendiente | `sprint/10-libros-reportes` | |
 | S11 Contabilidad y control (WEB) | pendiente | `sprint/11-contabilidad-control` | |
@@ -238,6 +238,113 @@ Bajas pendientes:
 - Estado "Desde {mes}" para reglas con vigencia futura.
 
 **Números**: 143 pruebas en 19 archivos (+62: tabla 7, campo decimal 4, confirmación 3, selector 3, terceros 10, productos 5, establecimientos 3, reglas 8, configuración 8, usuarios 7, roles +1, errores +2, formato +1). Cobertura total 88,2 % de líneas; `tabla-datos.tsx` 96 %, `roles.ts` 100 %.
+
+### S08 — operaciones (07/11/2026)
+
+Rama `sprint/08-operaciones`. Tipos regenerados con `pnpm run api:tipos` (35 rutas; +10 de comprobantes y movimientos).
+
+**Qué se hizo**
+- **Pantallas** (cargadas bajo demanda): Registrar compra, venta o exportación, merma o desmedro y ajuste (`/inventario/{compras,ventas,mermas}/nueva`, `/ajustes/nuevo`), Comprobantes (`/inventario/comprobantes`) y su detalle (`/:id`, con `?editar=1`).
+- **Formulario único** (`funcionalidades/comprobantes/formulario/`) para las cuatro operaciones, al registrar y al editar:
+  - varias líneas (producto, descripción, cantidad TN, costo o valor de venta, importe);
+  - `Alt+N` agrega una línea y enfoca su producto; `Ctrl+Enter` guarda; «Guardar y nueva» conserva fecha y establecimiento;
+  - totales con big.js rotulados "vista previa";
+  - zod con mensajes en español.
+- **Venta**: 01 factura / 03 boleta; operación 01 / 17. Con **03** la operación queda en 01, la opción 17 se deshabilita y aparece la ayuda "La exportación requiere factura" (también se fuerza en zod y al convertir). PEN o USD; con USD el tipo de cambio es obligatorio (3 decimales). Cada línea muestra "Disponible al dd/mm: X TN · costo estimado S/ Y" (`simular-salida`, 400 ms después de escribir) y avisa con ícono y texto si queda negativo.
+- **Merma o desmedro**: 13 con año del informe y documento `00-IT-<año>` de vista previa; 14 con "lo asigna la API (00-AD-…)". Sustento obligatorio, con su ayuda según el tipo.
+- **Ajuste**: operación 28, sustento obligatorio. Cada línea es una entrada al costo promedio, una entrada con costo informado o una salida al promedio.
+- **Comprobantes**:
+  - filtros (desde, hasta, naturaleza, tercero, producto, estado) y búsqueda por serie o número; paginación del servidor;
+  - columnas: Fecha · Tipo · Serie-Número · Tercero · Productos · TN · Moneda · Estado; los anulados, tachados, en gris, con ícono, el texto "Anulado" y el motivo;
+  - **Ver**: panel lateral con las líneas y su **efecto en el kardex** (orden, CU, costo, saldo TN/CU/S/, alertas);
+  - **Editar**: PATCH con solo lo que cambió; las líneas conservan su `id`;
+  - **Anular**: motivo obligatorio y texto que repite el efecto.
+- **Errores** (`errores-operacion.ts`, función pura con una prueba por código):
+  - 409 `STOCK_NEGATIVO_REQUIERE_CONFIRMACION` → `DialogoStockNegativo` (producto, fecha, disponible antes, saldo resultante) y reenvío **de la misma petición** con `confirmarStockNegativo: true`. Sirve al registrar, editar y anular.
+  - `STOCK_INSUFICIENTE` → aviso sin opción de confirmar.
+  - `PERIODO_CERRADO` → aviso con el mes según la fecha + error en Fecha.
+  - `ORDEN_EN_CONFLICTO` → aviso con **Reintentar**, que reenvía lo mismo y nunca se ejecuta solo.
+  - `COMPROBANTE_DUPLICADO` → junto al Número ("Ya existe la factura F001-0000123 de este proveedor").
+  - `COMPROBANTE_ANULADO` → aviso y formulario en solo lectura.
+  - 422 (`PRECIO_VENTA_REQUERIDO`, `TIPO_CAMBIO_REQUERIDO`, `SUSTENTO_REQUERIDO`, `SALDO_INICIAL_INEXISTENTE`, `TERCERO_INEXISTENTE`, `ESTABLECIMIENTO_INEXISTENTE`) → junto a su campo.
+  - 403 de un ASISTENTE al editar → "Solo puedes editar las compras y ventas que registraste tú.".
+  - 400 `VALIDACION` → cada error en su campo; `terceroId` y `costoUnitario`/`valorVentaUnitario` se traducen al campo del formulario.
+- `useEscritura`: un solo lugar para la confirmación de stock negativo, el reintento y la invalidación (kardex, stock, dashboard, periodos, comprobantes y productos).
+- **Comunes**: `DialogoStockNegativo`, `CampoFecha`, `SelectorProducto` y `Aviso`. `Aviso` viene de importación y ahora tiene tono error, acciones y usa `cn()`, lo que resuelve una observación baja del S6. `SelectorTercero` acepta un tercero resumido y un `ref`. `EncabezadoPagina` acepta `refTitulo`.
+- **Permisos** (`lib/roles.ts`): `compras:registrar` y `ventas:registrar` (A, C, S), `mermas:registrar` y `ajustes:registrar` (A, C), `comprobantes:anular` (A, C) y `puedeEditarComprobante` (A y C, todo lo registrado; S, solo compras y ventas).
+- **Mensajes** (`lib/errores.ts` y UI-UX §6):
+  - `PERIODO_CERRADO` con el texto unido aprobado ("El mes de {mes} está cerrado: no se puede registrar ni modificar. Pide reabrirlo si necesitas cambiarlo.");
+  - nuevos: `ORDEN_EN_CONFLICTO`, `TERCERO_INEXISTENTE`, `ESTABLECIMIENTO_INEXISTENTE` y `SALDO_INICIAL_INEXISTENTE` (con el año);
+  - `STOCK_INSUFICIENTE` ahora incluye el producto.
+- `lib/formato.ts`: `hoyIso()` (hoy en Lima, con `Intl`). `lib/stock-negativo.ts`: lectura tolerante del detalle del 409.
+- Pruebas: `renderizarEnRuta` (router de memoria) en `pruebas/api-falsa.tsx` y datos de demostración en `pruebas/comprobantes-demo.ts`. `vite.config.ts` tiene `testTimeout: 15_000` (ver Decisiones).
+- Documentación: `CONTRATO-API.md` §6.3 (comprobantes y dónde se muestra cada error) y `UI-UX.md` §5.4 (boleta) y §6.
+
+**Decisiones**
+- **ASISTENTE y "sus" comprobantes**: `ComprobanteDto` no dice quién lo creó, así que la web le muestra «Editar» en todas las compras y ventas y la API decide con 403, que se muestra con un mensaje propio. Aprobado por el equipo.
+- **El mes cerrado se detecta al guardar** (409) en este sprint; el aviso previo y el Guardar deshabilitado llegan con `/periodos` en el S9. Aprobado.
+- **Un solo formulario** para las cuatro operaciones y para editar: los mismos atajos, errores y accesibilidad en todas.
+- **«Guardar» con `aria-disabled`** (no `disabled`) mientras envía o en solo lectura, para no perder el foco al confirmar el stock negativo; los clics se ignoran.
+- **Columna TN de la lista**: suma de las líneas con big.js. Es una vista, no un saldo.
+- Mover un movimiento (`POST /movimientos/:id/mover`) queda para el Kardex (S9); su mensaje (`REORDEN_FUERA_DE_FECHA`) ya existe.
+- `testTimeout` de 15 s: con la PC cargada fallaban por tiempo algunas pruebas del S7 y del S8 que escriben con `user-event` (la batería tardó entre 26 y 68 s). Con 15 s, 3 ejecuciones seguidas pasaron completas.
+
+**Pendientes**
+- **API del S9**:
+  - agregar `creadoPorId` a `ComprobanteDto`, para ocultar «Editar» al ASISTENTE en lo que no registró;
+  - documentar en el OpenAPI los códigos `ORDEN_EN_CONFLICTO`, `TERCERO_INEXISTENTE` y `ESTABLECIMIENTO_INEXISTENTE`, y la forma del `detalle` de `STOCK_NEGATIVO_REQUIERE_CONFIRMACION`.
+- **S9 (web)**:
+  - mes cerrado antes de guardar (aviso, fecha marcada y Guardar deshabilitado) con `/periodos`;
+  - mover movimientos en el Kardex.
+- Bajas del `revisor-ux` sin corregir:
+  - motivo de anulación solo en `title` en la lista (el panel «Ver» y los lectores de pantalla sí lo tienen) → Tooltip enfocable;
+  - el `SelectorProducto` y los chips no llevan el punto de color de §4, porque `ProductoDto` no trae un color. Se agregará si la API lo incluye; el `<select>` nativo se mantiene por accesibilidad;
+  - "Descripción con sugerencias de las usadas antes" (§5.3): no hay un endpoint para obtenerlas.
+- Capturas `S08-*.png` (omitidas al cierre; las toma el equipo después), solo con la base de demostración. Cada imagen que entre a este repo se registra en `docs/archivos-revisados.txt`, y la evidencia del TAP en `../inventario-syp-api/docs/tap/05-EVIDENCIAS.md`.
+- Probar con la API local la merma, el desmedro y el ajuste. El equipo ya probó contra la base demo la compra, la venta con stock negativo, la exportación en USD y la anulación.
+
+**Cómo probar**
+```
+pnpm run lint ; pnpm test ; pnpm run build ; pnpm run revisar:datos
+pnpm run dev  →  http://localhost:5173/inventario/compras/nueva   (API con pnpm run start:dev o start:demo)
+```
+1. Como CONTADOR (`contadora.demo@syp.invalid`), registra una compra de FIERRO de PROVEEDOR DEMO S.A.C. (`F001`-`123`) con dos líneas.
+   - Usa Alt+N para agregar la segunda línea y Ctrl+Enter para guardar.
+   - Debe salir el toast "Compra F001-0000123 registrada · kardex recalculado" y abrirse el detalle con el efecto en el kardex.
+   - Si registras la misma factura otra vez, debe salir "Ya existe la factura F001-0000123 de este proveedor." junto al Número.
+2. Registra una venta a CLIENTE DEMO S.A.C.
+   - Con 03 Boleta, la operación 17 se deshabilita.
+   - Con 01, 17 y USD, se pide el tipo de cambio y cada línea muestra el disponible.
+   - Si vendes más de lo disponible, aparece el diálogo de stock negativo; «Registrar de todos modos» la guarda.
+3. Registra una merma 13 (documento `00-IT-<año>`), un desmedro 14 y un ajuste con una entrada con costo y una salida.
+4. En Comprobantes:
+   - filtra por Ventas;
+   - abre «Ver»;
+   - edita el número de una compra (solo se envía ese campo);
+   - anula con motivo: la fila queda tachada, con "Anulado".
+5. Como `asistente.demo@syp.invalid`: no ve Merma, Ajuste ni «Anular», y ve «Editar» solo en compras y ventas. Como `consulta.demo@syp.invalid`: solo «Ver».
+
+**Revisión `revisor-ux`**: APROBADO CON OBSERVACIONES, sin hallazgos altos ni datos reales. Se corrigieron los 4 de severidad media:
+- Confirmar el stock negativo ya no deja el foco en `<body>`: «Guardar» usa `aria-disabled`.
+- El primer error en Proveedor/Cliente enfoca el combobox: `SelectorTercero` acepta `ref`.
+- Al quitar una línea, el foco pasa al producto de la línea que ocupa su lugar.
+- Al anular, el foco pasa al título de la página, porque el botón «Anular» desaparece.
+
+También se corrigieron 4 de severidad baja:
+- Los errores que van solo al encabezado (y el conflicto) enfocan el aviso.
+- El total de vista previa ya no tiene `aria-live`.
+- La simulación solo anuncia el resultado, no "Consultando…".
+- Al guardar o cancelar la edición, el foco vuelve a «Editar».
+
+**Prueba del equipo contra la API (base demo)**: compra de 2 líneas, venta con el diálogo de stock negativo, exportación en USD con tipo de cambio obligatorio y anulación con motivo: todo funciona. Arreglo posterior: en los filtros de Comprobantes, el texto del selector de Tercero se desbordaba sobre el de Producto. Ahora muestra "RUC o razón social" (el texto completo queda como descripción accesible, `textoVacio` de `SelectorTercero`) y el botón usa `min-w-0` y `truncate`. Los filtros Tercero y Producto ocupan todo el ancho en celular y 18 rem y 14 rem desde `sm`.
+
+**Números**: 207 pruebas en 24 archivos (+64):
+- `paginas-registro` 15;
+- `pagina-comprobantes` (lista y detalle) 14;
+- `errores-operacion` 16 (con `it.each`);
+- `esquemas` 12;
+- `DialogoStockNegativo` 3;
+- `roles` +2 y `errores` +2.
 
 ### Cambio de equipo (06/11/2026)
 
