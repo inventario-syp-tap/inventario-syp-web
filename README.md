@@ -2,7 +2,7 @@
 
 Aplicación web para llevar el **inventario permanente valorizado** de una empresa comercializadora de chatarra metálica: registro de compras, ventas, exportaciones, mermas y ajustes; consulta del kardex por promedio ponderado; cierre de periodos; **Registro del Inventario Permanente en Unidades Físicas (Formato 12.1 SUNAT)** listo para hojas legalizadas; reportes; y exportación del asiento contable.
 
-Trabajo de Aplicación Profesional (TAP) de **Sara Rojas Leguía** y **Enrique Valdez Alva**.
+Trabajo de Aplicación Profesional (TAP) de **Enrique Valdez Alva** y **Lenyn Mitchel Rodriguez Benites**.
 
 > Este repositorio contiene **solo el frontend** y no incluye datos reales. La API, la lógica de costos y los datos son privados.
 

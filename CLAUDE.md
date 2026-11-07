@@ -1,7 +1,7 @@
 # inventario-syp-web — Frontend PÚBLICO del Sistema de Inventario S&P
 
 SPA en React para registrar compras, ventas, exportaciones, mermas y ajustes, consultar el kardex valorizado, cerrar periodos, imprimir el libro 12.1 y exportar asientos. **Este repositorio es PÚBLICO**: no contiene lógica de costos, secretos ni datos reales. La lógica y los datos viven en la API privada `inventario-syp-api` (carpeta hermana `../inventario-syp-api`).
-Trabajo de Aplicación Profesional (TAP) de Sara Rojas Leguía y Enrique Valdez Alva. Es el **módulo "inventario"** de una futura plataforma de S&P con login único: por eso sus rutas viven bajo `/inventario` y el diseño usa los nombres de tokens estándar de shadcn.
+Trabajo de Aplicación Profesional (TAP) de Enrique Valdez Alva y Lenyn Mitchel Rodriguez Benites. Es el **módulo "inventario"** de una futura plataforma de S&P con login único: por eso sus rutas viven bajo `/inventario` y el diseño usa los nombres de tokens estándar de shadcn.
 Responde siempre en **español**, explicando lo necesario para que el equipo aprenda y pueda defenderlo ante el jurado. El equipo trabaja en Windows 11 + VS Code + PowerShell.
 
 ## Principios
@@ -76,7 +76,7 @@ infra/ Dockerfile y Caddyfile (red local)        scripts/ revisar-datos-publicos
 - Leer o copiar `../inventario-syp-api/data/**` ni documentación interna de costos; escribir en `../inventario-syp-api`.
 - Usar npm o yarn para instalar. `git push`, merges a `main` o PRs fuera de `/cerrar-sprint`. Nunca `--force`.
 - Subir a TypeScript 6/7, TanStack Table 9, Vitest 5 u otra versión mayor sin aprobación.
-- Escribir nombres, correos o datos de personas ajenas al equipo (autoría, comentarios, documentos, mensajes de commit), aunque aparezcan en tu memoria o en la configuración personal de esta PC: la autoría es solo de Sara Rojas Leguía y Enrique Valdez Alva. Los commits salen con la identidad del equipo (`/cerrar-sprint` lo verifica).
+- Escribir nombres, correos o datos de personas ajenas al equipo (autoría, comentarios, documentos, mensajes de commit), aunque aparezcan en tu memoria o en la configuración personal de esta PC: la autoría es solo de Enrique Valdez Alva y Lenyn Mitchel Rodriguez Benites. Los commits salen con la identidad del equipo (`/cerrar-sprint` lo verifica).
 
 ## Forma de trabajo
 1. Lee `docs/AVANCE.md` y la sección de `docs/UI-UX.md` de la pantalla. 2. Presenta un **plan corto** y **espera aprobación** si toca más de 3 archivos. 3. Implementa con pruebas (componentes, utilidades y formularios). 4. Uno por uno: `pnpm run lint`, `pnpm test`, `pnpm run build` y `pnpm run revisar:datos`. 5. Resume cómo probar (URL y pasos). 6. Al final del sprint: `/cerrar-sprint`.
