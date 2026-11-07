@@ -238,3 +238,7 @@ Bajas pendientes:
 - Estado "Desde {mes}" para reglas con vigencia futura.
 
 **Números**: 143 pruebas en 19 archivos (+62: tabla 7, campo decimal 4, confirmación 3, selector 3, terceros 10, productos 5, establecimientos 3, reglas 8, configuración 8, usuarios 7, roles +1, errores +2, formato +1). Cobertura total 88,2 % de líneas; `tabla-datos.tsx` 96 %, `roles.ts` 100 %.
+
+### Cambio de equipo (06/11/2026)
+
+- Cambio de integrantes y de cuenta de GitHub (ver D-30 en la API).
