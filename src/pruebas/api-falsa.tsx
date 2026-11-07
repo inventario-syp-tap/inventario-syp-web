@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import { render } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { createMemoryRouter, RouterProvider } from 'react-router'
 import type { Metodo, OpcionesSolicitud } from '@/api/cliente'
 import { establecerSesion } from '@/lib/sesion'
 import { usuarioDemo } from './falsos'
@@ -47,6 +48,26 @@ export function renderizarConSesion(ui: ReactNode, roles: string[] = ['inventari
   establecerSesion('token-de-prueba', usuarioDemo(roles))
   const clienteConsultas = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   return render(<QueryClientProvider client={clienteConsultas}>{ui}</QueryClientProvider>)
+}
+
+/**
+ * Igual que renderizarConSesion, dentro de un router de memoria (para pantallas con useNavigate, useParams o
+ * Link). `patron` es la ruta con parámetros ("/inventario/comprobantes/:id") y `ruta`, la URL inicial.
+ * Devuelve también el router, para revisar a dónde navegó.
+ */
+export function renderizarEnRuta(
+  ui: ReactNode,
+  { ruta = '/', patron = '/', roles = ['inventario:CONTADOR'] }: { ruta?: string; patron?: string; roles?: string[] } = {},
+) {
+  establecerSesion('token-de-prueba', usuarioDemo(roles))
+  const clienteConsultas = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+  const router = createMemoryRouter([{ path: patron, element: ui }, { path: '*', element: <p>Otra página</p> }], { initialEntries: [ruta] })
+  const resultado = render(
+    <QueryClientProvider client={clienteConsultas}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  )
+  return { ...resultado, router }
 }
 
 /** Catálogos mínimos (Tablas SUNAT) para los selects. */

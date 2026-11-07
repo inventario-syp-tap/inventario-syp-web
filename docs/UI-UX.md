@@ -190,7 +190,7 @@ Serie [F001]  Número [123]   Fecha de emisión [15/03/2026]   ▸ Referencias (
 - Al guardar: toast "Compra F001-0000123 registrada · kardex recalculado" con enlace "Ver kardex". Mes cerrado: aviso y Guardar deshabilitado. Duplicado: "Ya existe la factura F001-0000123 de este proveedor".
 
 ### 5.4 Registrar venta o exportación (S8)
-Como la compra, con **Cliente**, tipo de comprobante (01 factura / 03 boleta, con "CLIENTES VARIOS" para boletas sin identificar), **operación** (`01 Venta nacional` / `17 Exportación`), **moneda** (PEN / USD; con USD el **tipo de cambio** es obligatorio) y **valor de venta unitario sin IGV** (obligatorio). Cada línea muestra a la derecha "Disponible al 15/03: 25.0000 TN · costo estimado S/ 1,500.00" (`POST /comprobantes/simular-salida`, 400 ms después de escribir). Si queda negativo se avisa en la línea; al guardar, la API decide (política de stock) y, si pide confirmación, aparece `DialogoStockNegativo`.
+Como la compra, con **Cliente**, tipo de comprobante (01 factura / 03 boleta, con "CLIENTES VARIOS" para boletas sin identificar), **operación** (`01 Venta nacional` / `17 Exportación`; con **03 Boleta** la operación queda en 01 y 17 se deshabilita con la ayuda "La exportación requiere factura"), **moneda** (PEN / USD; con USD el **tipo de cambio** es obligatorio) y **valor de venta unitario sin IGV** (obligatorio). Cada línea muestra a la derecha "Disponible al 15/03: 25.0000 TN · costo estimado S/ 1,500.00" (`POST /comprobantes/simular-salida`, 400 ms después de escribir). Si queda negativo se avisa en la línea; al guardar, la API decide (política de stock) y, si pide confirmación, aparece `DialogoStockNegativo`.
 
 ### 5.5 Registrar merma o desmedro (S8)
 Selector `13 Merma` / `14 Desmedro`, fecha, líneas por producto con cantidad y **sustento** obligatorio:
@@ -319,14 +319,15 @@ Dos tarjetas: **Descargar respaldo completo** (`.dump`, para restaurar con `pg_r
 |---|---|
 | `VALIDACION` | Revisa los campos marcados. |
 | `NO_AUTENTICADO` | Tu sesión terminó. Vuelve a ingresar. |
-| `SIN_PERMISO` | No tienes permiso para esta acción. |
+| `SIN_PERMISO` | No tienes permiso para esta acción. (ASISTENTE que edita un comprobante: "Solo puedes editar las compras y ventas que registraste tú.") |
 | `NO_ENCONTRADO` | No encontramos ese registro (quizá fue anulado). |
-| `PERIODO_CERRADO` | El mes de {mes} está cerrado. Pide reabrirlo si necesitas cambiarlo. |
+| `PERIODO_CERRADO` | El mes de {mes} está cerrado: no se puede registrar ni modificar. Pide reabrirlo si necesitas cambiarlo. ({mes} según la fecha del comprobante: "marzo de 2026") |
 | `PERIODO_ANTERIOR_ABIERTO` | Primero cierra el mes anterior. |
 | `PERIODO_POSTERIOR_CERRADO` | Solo se puede reabrir el último mes cerrado. |
 | `STOCK_NEGATIVO_REQUIERE_CONFIRMACION` | (diálogo) Esta salida deja {producto} en {saldo} TN al {fecha}. ¿Registrar de todos modos? |
-| `STOCK_INSUFICIENTE` | No hay stock suficiente de {producto} al {fecha} (disponible {disponible} TN). |
-| `COMPROBANTE_DUPLICADO` | Ya existe {tipo} {serie}-{número} de este tercero. |
+| `STOCK_INSUFICIENTE` | No hay stock suficiente de {producto} al {fecha} (disponible {disponible} TN). (Política BLOQUEAR: sin opción de confirmar) |
+| `ORDEN_EN_CONFLICTO` | Otro usuario modificó este kardex al mismo tiempo; vuelve a intentarlo. (Con botón **Reintentar**, que reenvía lo mismo) |
+| `COMPROBANTE_DUPLICADO` | Ya existe {tipo} {serie}-{número} de este tercero. (Junto al Número: "Ya existe la factura F001-0000123 de este proveedor.") |
 | `RUC_INVALIDO` / `DOCUMENTO_INVALIDO` | El RUC no es válido (revisa los 11 dígitos) / El documento no tiene el formato correcto. |
 | `SUSTENTO_REQUERIDO` | Indica el sustento (informe técnico o acta). |
 | `PRECIO_VENTA_REQUERIDO` | Indica el valor de venta sin IGV de cada línea. |
@@ -338,6 +339,8 @@ Dos tarjetas: **Descargar respaldo completo** (`.dump`, para restaurar con `pg_r
 | `VIGENCIA_INVALIDA` | La vigencia no es válida: usa AAAA-MM y que "vigente hasta" no sea anterior a "vigente desde". |
 | `OPERACION_NO_CORRESPONDE` | La operación no corresponde al tipo de asiento (costo de ventas: 01 o 17 · merma: 13 · desmedro: 14 · ajustes: 28). |
 | `PRODUCTO_INEXISTENTE` | Ese producto no existe o está inactivo. |
+| `TERCERO_INEXISTENTE` | Ese cliente o proveedor no existe o está inactivo. |
+| `ESTABLECIMIENTO_INEXISTENTE` | Ese establecimiento no existe o está inactivo. |
 | `CODIGO_SUNAT_INVALIDO` | Uno de los códigos SUNAT (Tabla 5, 6 o 14) no es válido. |
 | `CUENTA_INVALIDA` | La cuenta contable debe tener de 2 a 12 dígitos. |
 | `TERCERO_DUPLICADO` | Ya existe un cliente o proveedor con ese documento. |

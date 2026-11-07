@@ -30,29 +30,51 @@ const texto = (d: Detalle, clave: string): string | undefined => {
   return typeof valor === 'string' || typeof valor === 'number' ? String(valor) : undefined
 }
 
+/**
+ * 409 PERIODO_CERRADO con el mes de `detalle.mes`/`detalle.anio` o, si no vienen, de `detalle.fecha`
+ * (la fecha del comprobante): "El mes de marzo de 2026 está cerrado: no se puede registrar ni modificar. …".
+ */
+function mensajePeriodoCerrado(d: Detalle): string {
+  const fecha = /^(\d{4})-(\d{2})/.exec(texto(d, 'fecha') ?? '')
+  const mes = Number.parseInt(texto(d, 'mes') ?? fecha?.[2] ?? '', 10)
+  const anio = texto(d, 'anio') ?? fecha?.[1]
+  const nombre = Number.isFinite(mes) && mes >= 1 && mes <= 12
+    ? ` de ${nombreMes(mes).toLowerCase()}${anio ? ` de ${anio}` : ''}`
+    : ''
+  return `El mes${nombre} está cerrado: no se puede registrar ni modificar. Pide reabrirlo si necesitas cambiarlo.`
+}
+
 const MENSAJES: Record<string, Plantilla> = {
   VALIDACION: 'Revisa los campos marcados.',
   NO_AUTENTICADO: 'Tu sesión terminó. Vuelve a ingresar.',
   SIN_PERMISO: 'No tienes permiso para esta acción.',
   NO_ENCONTRADO: 'No encontramos ese registro (quizá fue anulado).',
-  PERIODO_CERRADO: (d) => {
-    const mes = texto(d, 'mes')
-    return `El mes${mes ? ` de ${nombreMes(Number.parseInt(mes, 10)).toLowerCase()}` : ''} está cerrado. Pide reabrirlo si necesitas cambiarlo.`
-  },
+  PERIODO_CERRADO: (d) => mensajePeriodoCerrado(d),
   PERIODO_ANTERIOR_ABIERTO: 'Primero cierra el mes anterior.',
   PERIODO_POSTERIOR_CERRADO: 'Solo se puede reabrir el último mes cerrado.',
   STOCK_INSUFICIENTE: (d, e) => {
     const fecha = texto(d, 'fecha')
     const disponible = texto(d, 'disponible') ?? texto(d, 'disponibleAntes')
+    const producto = texto(d, 'producto') ?? texto(d, 'productoCodigo')
     if (!fecha || !disponible) return e.message || 'No hay stock suficiente.'
-    return `No hay stock suficiente al ${formatearFecha(fecha)} (disponible ${formatearToneladas(disponible)} TN).`
+    return `No hay stock suficiente${producto ? ` de ${producto}` : ''} al ${formatearFecha(fecha)} (disponible ${formatearToneladas(disponible)} TN).`
   },
+  STOCK_NEGATIVO_REQUIERE_CONFIRMACION: 'Esta operación deja el stock en negativo. Confírmala para registrarla de todos modos.',
   COMPROBANTE_DUPLICADO: 'Ya existe ese comprobante de este tercero.',
   RUC_INVALIDO: 'El RUC no es válido (revisa los 11 dígitos).',
   DOCUMENTO_INVALIDO: 'El documento no tiene el formato correcto.',
   SUSTENTO_REQUERIDO: 'Indica el sustento (informe técnico o acta).',
   PRECIO_VENTA_REQUERIDO: 'Indica el valor de venta sin IGV de cada línea.',
   TIPO_CAMBIO_REQUERIDO: 'Para ventas en dólares indica el tipo de cambio de la fecha de emisión.',
+  SALDO_INICIAL_INEXISTENTE: (d) => {
+    const anio = Number.parseInt(texto(d, 'anio') ?? texto(d, 'fecha')?.slice(0, 4) ?? '', 10)
+    return Number.isFinite(anio)
+      ? `Falta el saldo inicial de ${anio}: haz el cierre anual de ${anio - 1}.`
+      : 'Falta el saldo inicial del año: haz el cierre anual del año anterior.'
+  },
+  ORDEN_EN_CONFLICTO: 'Otro usuario modificó este kardex al mismo tiempo; vuelve a intentarlo.',
+  TERCERO_INEXISTENTE: 'Ese cliente o proveedor no existe o está inactivo.',
+  ESTABLECIMIENTO_INEXISTENTE: 'Ese establecimiento no existe o está inactivo.',
   CIERRE_ANUAL_INCOMPLETO: 'Cierra los 12 meses antes del cierre anual.',
   VIGENCIA_SUPERPUESTA: 'Ya existe una regla vigente en esas fechas para el mismo tipo, producto y operación. Cierra la anterior con "vigente hasta".',
   VIGENCIA_INVALIDA: 'La vigencia no es válida: usa AAAA-MM y que "vigente hasta" no sea anterior a "vigente desde".',

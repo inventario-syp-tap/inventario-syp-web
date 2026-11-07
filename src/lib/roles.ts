@@ -37,6 +37,11 @@ export const PERMISOS = {
   'configuracion:winconta': A_C,
   'configuracion:toma': SOLO_A,
   'usuarios:administrar': SOLO_A,
+  'compras:registrar': A_C_S,
+  'ventas:registrar': A_C_S,
+  'mermas:registrar': A_C,
+  'ajustes:registrar': A_C,
+  'comprobantes:anular': A_C,
 } as const satisfies Record<string, readonly Rol[]>
 
 export type Accion = keyof typeof PERMISOS
@@ -44,6 +49,20 @@ export type Accion = keyof typeof PERMISOS
 /** puede('reglas:editar'). Sin `roles` usa los de la sesión actual. */
 export function puede(accion: Accion, roles: readonly string[] = rolesActuales()): boolean {
   return tieneAlgunRol('inventario', PERMISOS[accion], roles)
+}
+
+/**
+ * Editar un comprobante registrado: ADMIN y CONTADOR, cualquiera; ASISTENTE, solo compras y ventas. La API además
+ * exige que el ASISTENTE lo haya registrado él (responde 403): el contrato aún no dice quién lo creó (pendiente
+ * `creadoPorId` para la API del S9), así que aquí no se puede filtrar por autor.
+ */
+export function puedeEditarComprobante(
+  comprobante: { naturaleza: string; estado: string },
+  roles: readonly string[] = rolesActuales(),
+): boolean {
+  if (comprobante.estado !== 'REGISTRADO') return false
+  if (tieneAlgunRol('inventario', A_C, roles)) return true
+  return tieneRol('inventario', 'ASISTENTE', roles) && (comprobante.naturaleza === 'COMPRA' || comprobante.naturaleza === 'VENTA')
 }
 
 /** Igual que `puede`, pero se vuelve a evaluar si cambia la sesión (para componentes). */

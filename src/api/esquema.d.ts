@@ -459,6 +459,160 @@ export interface paths {
         patch: operations["ReglasContablesController_editar"];
         trace?: never;
     };
+    "/api/inventario/v1/comprobantes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista paginada; filtros naturaleza, desde, hasta, terceroId, productoId, estado y q */
+        get: operations["ComprobantesController_listar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/comprobantes/compras": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Compra (factura 01, operación 02). 409 PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, COMPROBANTE_DUPLICADO; 422 SALDO_INICIAL_INEXISTENTE */
+        post: operations["ComprobantesController_crearCompra"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/comprobantes/ventas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Venta nacional (01) o exportación (17), PEN o USD. 422 PRECIO_VENTA_REQUERIDO, TIPO_CAMBIO_REQUERIDO; 409 PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, COMPROBANTE_DUPLICADO; 422 SALDO_INICIAL_INEXISTENTE */
+        post: operations["ComprobantesController_crearVenta"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/comprobantes/mermas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Merma 13 (00-IT-<año>) o desmedro 14 (00-AD-<correlativo>). 422 SUSTENTO_REQUERIDO; 409 PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, COMPROBANTE_DUPLICADO; 422 SALDO_INICIAL_INEXISTENTE */
+        post: operations["ComprobantesController_crearMerma"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/comprobantes/ajustes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ajuste por diferencia de inventario 28 (00-AI-<correlativo>). 422 SUSTENTO_REQUERIDO; 409 PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, COMPROBANTE_DUPLICADO; 422 SALDO_INICIAL_INEXISTENTE */
+        post: operations["ComprobantesController_crearAjuste"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/comprobantes/simular-salida": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stock disponible y costo estimado de una salida (no guarda) */
+        post: operations["ComprobantesController_simularSalida"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/comprobantes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Cabecera y líneas con los valores calculados */
+        get: operations["ComprobantesController_obtener"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edita (ASISTENTE: solo sus compras y ventas) y recalcula. 409 COMPROBANTE_ANULADO; 409 PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, COMPROBANTE_DUPLICADO; 422 SALDO_INICIAL_INEXISTENTE */
+        patch: operations["ComprobantesController_editar"];
+        trace?: never;
+    };
+    "/api/inventario/v1/comprobantes/{id}/anular": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Anula con motivo y libera la clave. 409 COMPROBANTE_ANULADO; 409 PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, COMPROBANTE_DUPLICADO; 422 SALDO_INICIAL_INEXISTENTE */
+        post: operations["ComprobantesController_anular"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/movimientos/{id}/mover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sube o baja un movimiento dentro de la misma fecha del mismo kardex. 422 REORDEN_FUERA_DE_FECHA; 409 COMPROBANTE_ANULADO, PERIODO_CERRADO */
+        post: operations["MovimientosController_mover"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1479,6 +1633,518 @@ export interface components {
             /** @example Costo de ventas nacional - fierro (demo) */
             descripcion?: string;
         };
+        TerceroResumenDto: {
+            /** @example 2 */
+            id: number;
+            /** @example 6 */
+            tipoDocumento: string;
+            /** @example 20000000001 */
+            numeroDocumento: string | null;
+            /** @example PROVEEDOR DEMO S.A.C. */
+            razonSocial: string;
+        };
+        LineaComprobanteDto: {
+            /** @example 7f1c2a9e-1b2c-4d3e-8f90-1234567890ab */
+            id: string;
+            /** @example 1 */
+            productoId: number;
+            /** @example D-FIERRO */
+            productoCodigo: string;
+            /** @example 1 */
+            establecimientoId: number;
+            /** @example 2026 */
+            anio: number;
+            /**
+             * @description Posición en el kardex (02 §3)
+             * @example 12
+             */
+            orden: number;
+            /** @example 2026-01-08 */
+            fecha: string;
+            /**
+             * @example ENTRADA
+             * @enum {string}
+             */
+            tipoMovimiento: "ENTRADA" | "SALIDA";
+            /** @example 02 */
+            tipoOperacion: string;
+            /** @example Chatarra pesada */
+            descripcion: string;
+            /** @example 20 */
+            cantidad: string;
+            /** @example 54 */
+            costoUnitario: string | null;
+            /** @example false */
+            costoAlPromedio: boolean;
+            /** @example null */
+            valorVentaUnitario: string | null;
+            /** @example 1080 */
+            costoTotalEntrada: string | null;
+            /** @example null */
+            costoUnitarioSalida: string | null;
+            /** @example null */
+            costoTotalSalida: string | null;
+            /** @example 120 */
+            saldoCantidad: string;
+            /** @example 52.5 */
+            saldoCostoUnitario: string;
+            /** @example 6300 */
+            saldoCostoTotal: string;
+            /** @example [] */
+            alertas: string[];
+        };
+        ComprobanteDto: {
+            /** @example 0b6f2c1e-9a8d-4c7b-b6a5-1234567890ab */
+            id: string;
+            /**
+             * @example COMPRA
+             * @enum {string}
+             */
+            naturaleza: "COMPRA" | "VENTA" | "MERMA" | "AJUSTE";
+            /** @example 01 */
+            tipoComprobante: string;
+            /** @example F001 */
+            serie: string;
+            /** @example 123 */
+            numero: string;
+            /** @example 01-F001-123 */
+            documento: string;
+            /** @example 2026-01-08 */
+            fecha: string;
+            /** @example 02 */
+            tipoOperacion: string;
+            tercero: components["schemas"]["TerceroResumenDto"] | null;
+            /**
+             * @example PEN
+             * @enum {string}
+             */
+            moneda: "PEN" | "USD";
+            /** @example null */
+            tipoCambio: string | null;
+            /** @example null */
+            sustento: string | null;
+            /** @example T001-0000456 */
+            guiaRemision: string | null;
+            /** @example B-0001 */
+            ticketBalanza: string | null;
+            /** @example null */
+            placaVehiculo: string | null;
+            /** @example null */
+            observacion: string | null;
+            /**
+             * @example REGISTRADO
+             * @enum {string}
+             */
+            estado: "REGISTRADO" | "ANULADO";
+            /** @example null */
+            motivoAnulacion: string | null;
+            /** @example null */
+            anuladoEn: string | null;
+            /**
+             * @description HISTORICO_2024… si vino de la carga histórica
+             * @example null
+             */
+            origenImportacion: string | null;
+            /** @example 2026-01-08T15:04:05.000Z */
+            creadoEn: string;
+            lineas: components["schemas"]["LineaComprobanteDto"][];
+        };
+        ComprobantesPaginaDto: {
+            datos: components["schemas"]["ComprobanteDto"][];
+            /** @example 1 */
+            total: number;
+            /** @example 1 */
+            pagina: number;
+            /** @example 50 */
+            tamano: number;
+        };
+        LineaCompraDto: {
+            /** @example 1 */
+            productoId: number;
+            /** @example Chatarra pesada */
+            descripcion: string;
+            /**
+             * @description TN, string decimal > 0 con hasta 4 decimales
+             * @example 20.0000
+             */
+            cantidad: string;
+            /**
+             * @description Costo unitario sin IGV (S/ por TN), hasta 6 decimales
+             * @example 54.000000
+             */
+            costoUnitario: string;
+        };
+        CrearCompraDto: {
+            /**
+             * @description Confirma que la operación deja saldo negativo (02 §4). Sin ella → 409 STOCK_NEGATIVO_REQUIERE_CONFIRMACION
+             * @example false
+             */
+            confirmarStockNegativo?: boolean;
+            /**
+             * @description Fecha de emisión (D-02)
+             * @example 2026-01-08
+             */
+            fecha: string;
+            /**
+             * @description Por defecto, el establecimiento 0001
+             * @example 1
+             */
+            establecimientoId?: number;
+            /** @example null */
+            observacion?: string;
+            /**
+             * @description Serie (mayúsculas y dígitos)
+             * @example F001
+             */
+            serie: string;
+            /** @example 123 */
+            numero: string;
+            /** @example 2 */
+            terceroId: number;
+            /** @example T001-0000456 */
+            guiaRemision?: string;
+            /** @example B-0001 */
+            ticketBalanza?: string;
+            /** @example ABC-123 */
+            placaVehiculo?: string;
+            /**
+             * @description Tabla 10: factura
+             * @example 01
+             * @enum {string}
+             */
+            tipoComprobante: "01";
+            lineas: components["schemas"]["LineaCompraDto"][];
+        };
+        SaldoDto: {
+            /** @example 120 */
+            cantidad: string;
+            /** @example 6300 */
+            costoTotal: string;
+            /** @example 52.5 */
+            costoUnitario: string;
+        };
+        KardexAfectadoDto: {
+            /** @example 1 */
+            productoId: number;
+            /** @example 1 */
+            establecimientoId: number;
+            /** @example 2026 */
+            anio: number;
+            saldoFinal: components["schemas"]["SaldoDto"];
+            /**
+             * @description Alertas presentes en el kardex del año (STOCK_NEGATIVO…)
+             * @example []
+             */
+            alertas: string[];
+        };
+        ResultadoEscrituraDto: {
+            comprobante: components["schemas"]["ComprobanteDto"];
+            kardex: components["schemas"]["KardexAfectadoDto"][];
+        };
+        LineaVentaDto: {
+            /** @example 1 */
+            productoId: number;
+            /** @example Chatarra pesada */
+            descripcion: string;
+            /**
+             * @description TN, string decimal > 0 con hasta 4 decimales
+             * @example 20.0000
+             */
+            cantidad: string;
+            /**
+             * @description Valor de venta unitario sin IGV en la moneda del comprobante (obligatorio, D-11: si falta → 422 PRECIO_VENTA_REQUERIDO)
+             * @example 900.00
+             */
+            valorVentaUnitario?: string;
+        };
+        CrearVentaDto: {
+            /**
+             * @description Confirma que la operación deja saldo negativo (02 §4). Sin ella → 409 STOCK_NEGATIVO_REQUIERE_CONFIRMACION
+             * @example false
+             */
+            confirmarStockNegativo?: boolean;
+            /**
+             * @description Fecha de emisión (D-02)
+             * @example 2026-01-08
+             */
+            fecha: string;
+            /**
+             * @description Por defecto, el establecimiento 0001
+             * @example 1
+             */
+            establecimientoId?: number;
+            /** @example null */
+            observacion?: string;
+            /**
+             * @description Serie (mayúsculas y dígitos)
+             * @example F001
+             */
+            serie: string;
+            /** @example 123 */
+            numero: string;
+            /** @example 2 */
+            terceroId: number;
+            /** @example T001-0000456 */
+            guiaRemision?: string;
+            /** @example B-0001 */
+            ticketBalanza?: string;
+            /** @example ABC-123 */
+            placaVehiculo?: string;
+            /**
+             * @description Tabla 10: 01 factura, 03 boleta
+             * @example 01
+             * @enum {string}
+             */
+            tipoComprobante: "01" | "03";
+            /**
+             * @description Tabla 12: 01 venta nacional, 17 exportación (D-05)
+             * @example 17
+             * @enum {string}
+             */
+            tipoOperacion: "01" | "17";
+            /**
+             * @default PEN
+             * @example USD
+             * @enum {string}
+             */
+            moneda: "PEN" | "USD";
+            /**
+             * @description Tipo de cambio de la fecha de emisión (D-16); obligatorio en USD (422 TIPO_CAMBIO_REQUERIDO)
+             * @example 3.700
+             */
+            tipoCambio?: string;
+            lineas: components["schemas"]["LineaVentaDto"][];
+        };
+        LineaMermaDto: {
+            /** @example 1 */
+            productoId: number;
+            /** @example Chatarra pesada */
+            descripcion: string;
+            /**
+             * @description TN, string decimal > 0 con hasta 4 decimales
+             * @example 20.0000
+             */
+            cantidad: string;
+        };
+        CrearMermaDto: {
+            /**
+             * @description Confirma que la operación deja saldo negativo (02 §4). Sin ella → 409 STOCK_NEGATIVO_REQUIERE_CONFIRMACION
+             * @example false
+             */
+            confirmarStockNegativo?: boolean;
+            /**
+             * @description Fecha de emisión (D-02)
+             * @example 2026-01-08
+             */
+            fecha: string;
+            /**
+             * @description Por defecto, el establecimiento 0001
+             * @example 1
+             */
+            establecimientoId?: number;
+            /** @example null */
+            observacion?: string;
+            /**
+             * @description 13 merma (00-IT-<año>, D-06) · 14 desmedro (00-AD-<correlativo>)
+             * @example 13
+             * @enum {string}
+             */
+            tipoOperacion: "13" | "14";
+            /**
+             * @description Solo merma 13: año del informe técnico (por defecto, el de la fecha)
+             * @example 2026
+             */
+            anioInforme?: number;
+            /**
+             * @description Obligatorio (422 SUSTENTO_REQUERIDO)
+             * @example INFORME TÉCNICO DE MERMA 2026
+             */
+            sustento?: string;
+            lineas: components["schemas"]["LineaMermaDto"][];
+        };
+        LineaAjusteDto: {
+            /** @example 1 */
+            productoId: number;
+            /** @example Chatarra pesada */
+            descripcion: string;
+            /**
+             * @description TN, string decimal > 0 con hasta 4 decimales
+             * @example 20.0000
+             */
+            cantidad: string;
+            /**
+             * @example ENTRADA
+             * @enum {string}
+             */
+            tipoMovimiento: "ENTRADA" | "SALIDA";
+            /**
+             * @description Solo ENTRADA con costo informado (sin costoAlPromedio)
+             * @example 54.000000
+             */
+            costoUnitario?: string;
+            /**
+             * @description Solo ENTRADA: se valoriza al costo promedio vigente (sobrante)
+             * @example true
+             */
+            costoAlPromedio?: boolean;
+        };
+        CrearAjusteDto: {
+            /**
+             * @description Confirma que la operación deja saldo negativo (02 §4). Sin ella → 409 STOCK_NEGATIVO_REQUIERE_CONFIRMACION
+             * @example false
+             */
+            confirmarStockNegativo?: boolean;
+            /**
+             * @description Fecha de emisión (D-02)
+             * @example 2026-01-08
+             */
+            fecha: string;
+            /**
+             * @description Por defecto, el establecimiento 0001
+             * @example 1
+             */
+            establecimientoId?: number;
+            /** @example null */
+            observacion?: string;
+            /**
+             * @description Obligatorio (422 SUSTENTO_REQUERIDO)
+             * @example ACTA DE TOMA DE INVENTARIO DEL 31/03/2026
+             */
+            sustento?: string;
+            lineas: components["schemas"]["LineaAjusteDto"][];
+        };
+        SimularSalidaDto: {
+            /** @example 1 */
+            productoId: number;
+            /** @example 2026-01-28 */
+            fecha: string;
+            /** @example 10.0000 */
+            cantidad: string;
+            /** @example 1 */
+            establecimientoId?: number;
+        };
+        SimulacionSalidaDto: {
+            /** @example 1 */
+            productoId: number;
+            /** @example 1 */
+            establecimientoId: number;
+            /** @example 2026-01-28 */
+            fecha: string;
+            /** @example 10 */
+            cantidad: string;
+            /**
+             * @description Saldo en TN justo antes de la salida simulada
+             * @example 25
+             */
+            disponibleAntes: string;
+            /**
+             * @description CU con el que saldría
+             * @example 52.5
+             */
+            costoUnitarioEstimado: string;
+            /** @example 525 */
+            costoEstimado: string;
+            /** @example 15 */
+            saldoResultante: string;
+            /**
+             * @description true si la salida deja saldo negativo en algún punto del año
+             * @example false
+             */
+            quedaNegativo: boolean;
+        };
+        LineaEditarDto: {
+            /** @example 1 */
+            productoId: number;
+            /** @example Chatarra pesada */
+            descripcion: string;
+            /**
+             * @description TN, string decimal > 0 con hasta 4 decimales
+             * @example 20.0000
+             */
+            cantidad: string;
+            /**
+             * @description Id del movimiento que se conserva
+             * @example 7f1c2a9e-1b2c-4d3e-8f90-1234567890ab
+             */
+            id?: string;
+            /** @example 54.000000 */
+            costoUnitario?: string;
+            /** @example 900.00 */
+            valorVentaUnitario?: string;
+            /**
+             * @example ENTRADA
+             * @enum {string}
+             */
+            tipoMovimiento?: "ENTRADA" | "SALIDA";
+            /** @example false */
+            costoAlPromedio?: boolean;
+        };
+        EditarComprobanteDto: {
+            /**
+             * @description Confirma que la operación deja saldo negativo (02 §4). Sin ella → 409 STOCK_NEGATIVO_REQUIERE_CONFIRMACION
+             * @example false
+             */
+            confirmarStockNegativo?: boolean;
+            /** @example 2026-01-09 */
+            fecha?: string;
+            /** @example F001 */
+            serie?: string;
+            /** @example 124 */
+            numero?: string;
+            /** @example 2 */
+            terceroId?: number;
+            /**
+             * @example 01
+             * @enum {string}
+             */
+            tipoComprobante?: "01" | "03";
+            /**
+             * @example 01
+             * @enum {string}
+             */
+            tipoOperacion?: "01" | "17";
+            /**
+             * @example PEN
+             * @enum {string}
+             */
+            moneda?: "PEN" | "USD";
+            /** @example 3.700 */
+            tipoCambio?: string | null;
+            /** @example 2026 */
+            anioInforme?: number;
+            /** @example INFORME TÉCNICO DE MERMA 2026 */
+            sustento?: string;
+            /** @example T001-0000456 */
+            guiaRemision?: string;
+            /** @example B-0001 */
+            ticketBalanza?: string;
+            /** @example ABC-123 */
+            placaVehiculo?: string;
+            /** @example null */
+            observacion?: string;
+            lineas?: components["schemas"]["LineaEditarDto"][];
+        };
+        AnularComprobanteDto: {
+            /**
+             * @description Confirma que la operación deja saldo negativo (02 §4). Sin ella → 409 STOCK_NEGATIVO_REQUIERE_CONFIRMACION
+             * @example false
+             */
+            confirmarStockNegativo?: boolean;
+            /** @example Factura registrada con el número equivocado */
+            motivo: string;
+        };
+        MoverMovimientoDto: {
+            /**
+             * @description Confirma que la operación deja saldo negativo (02 §4). Sin ella → 409 STOCK_NEGATIVO_REQUIERE_CONFIRMACION
+             * @example false
+             */
+            confirmarStockNegativo?: boolean;
+            /**
+             * @example ARRIBA
+             * @enum {string}
+             */
+            direccion: "ARRIBA" | "ABAJO";
+        };
     };
     responses: never;
     parameters: never;
@@ -2203,6 +2869,247 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReglaContableDto"];
+                };
+            };
+        };
+    };
+    ComprobantesController_listar: {
+        parameters: {
+            query?: {
+                pagina?: number;
+                tamano?: number;
+                naturaleza?: "COMPRA" | "VENTA" | "MERMA" | "AJUSTE";
+                desde?: string;
+                hasta?: string;
+                terceroId?: number;
+                productoId?: number;
+                estado?: "REGISTRADO" | "ANULADO";
+                /** @description Parte de la serie o del número */
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComprobantesPaginaDto"];
+                };
+            };
+        };
+    };
+    ComprobantesController_crearCompra: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CrearCompraDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoEscrituraDto"];
+                };
+            };
+        };
+    };
+    ComprobantesController_crearVenta: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CrearVentaDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoEscrituraDto"];
+                };
+            };
+        };
+    };
+    ComprobantesController_crearMerma: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CrearMermaDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoEscrituraDto"];
+                };
+            };
+        };
+    };
+    ComprobantesController_crearAjuste: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CrearAjusteDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoEscrituraDto"];
+                };
+            };
+        };
+    };
+    ComprobantesController_simularSalida: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SimularSalidaDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SimulacionSalidaDto"];
+                };
+            };
+        };
+    };
+    ComprobantesController_obtener: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComprobanteDto"];
+                };
+            };
+        };
+    };
+    ComprobantesController_editar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditarComprobanteDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoEscrituraDto"];
+                };
+            };
+        };
+    };
+    ComprobantesController_anular: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnularComprobanteDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoEscrituraDto"];
+                };
+            };
+        };
+    };
+    MovimientosController_mover: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MoverMovimientoDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoEscrituraDto"];
                 };
             };
         };

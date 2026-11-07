@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { A_C, puede, tieneAlgunRol, tieneRol } from './roles'
+import { A_C, puede, puedeEditarComprobante, tieneAlgunRol, tieneRol } from './roles'
 import { establecerSesion, reiniciarSesionParaPruebas } from './sesion'
 
 const usuario = (roles: string[]) => ({
@@ -39,5 +39,25 @@ describe('puede (matriz de permisos del S7)', () => {
     expect(puede('configuracion:empresa', ['inventario:CONTADOR'])).toBe(false)
     expect(puede('usuarios:administrar', ['inventario:ADMIN'])).toBe(true)
     expect(puede('terceros:editar', ['inventario:CONSULTA'])).toBe(false)
+  })
+})
+
+describe('comprobantes (S8)', () => {
+  it('registrar: compra y venta A, C, S; merma y ajuste A, C; anular A, C', () => {
+    expect(puede('compras:registrar', ['inventario:ASISTENTE'])).toBe(true)
+    expect(puede('mermas:registrar', ['inventario:ASISTENTE'])).toBe(false)
+    expect(puede('comprobantes:anular', ['inventario:ASISTENTE'])).toBe(false)
+    expect(puede('comprobantes:anular', ['inventario:CONTADOR'])).toBe(true)
+    expect(puede('ventas:registrar', ['inventario:CONSULTA'])).toBe(false)
+  })
+
+  it('editar: A y C todo lo registrado; S solo compras y ventas; nadie un anulado', () => {
+    const merma = { naturaleza: 'MERMA', estado: 'REGISTRADO' }
+    const compra = { naturaleza: 'COMPRA', estado: 'REGISTRADO' }
+    expect(puedeEditarComprobante(merma, ['inventario:CONTADOR'])).toBe(true)
+    expect(puedeEditarComprobante(merma, ['inventario:ASISTENTE'])).toBe(false)
+    expect(puedeEditarComprobante(compra, ['inventario:ASISTENTE'])).toBe(true)
+    expect(puedeEditarComprobante(compra, ['inventario:CONSULTA'])).toBe(false)
+    expect(puedeEditarComprobante({ ...compra, estado: 'ANULADO' }, ['inventario:ADMIN'])).toBe(false)
   })
 })

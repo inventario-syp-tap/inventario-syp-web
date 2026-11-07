@@ -6,7 +6,8 @@ import { LayoutApp, type DatosRuta } from './layout/layout-app'
 import { PaginaNoEncontrada } from './pagina-no-encontrada'
 import { INICIO, PAGINAS_DEL_MODULO, RAIZ_MODULO } from './paginas'
 import {
-  CargandoPantalla, PaginaConfiguracion, PaginaEstablecimientos, PaginaProductos, PaginaReglas, PaginaTerceros, PaginaUsuarios,
+  CargandoPantalla, PaginaAjuste, PaginaCompra, PaginaComprobantes, PaginaConfiguracion, PaginaDetalleComprobante,
+  PaginaEstablecimientos, PaginaMerma, PaginaProductos, PaginaReglas, PaginaTerceros, PaginaUsuarios, PaginaVenta,
 } from './pantallas-diferidas'
 import { RaizApp } from './raiz-app'
 import { RutaProtegida } from './ruta-protegida'
@@ -29,6 +30,12 @@ const PANTALLAS: Record<string, ReactNode> = {
   [`${RAIZ_MODULO}/maestros/establecimientos`]: diferida(<PaginaEstablecimientos />),
   [`${RAIZ_MODULO}/configuracion`]: diferida(<PaginaConfiguracion />),
   [`${RAIZ_MODULO}/configuracion/usuarios`]: diferida(<PaginaUsuarios />),
+  [`${RAIZ_MODULO}/compras/nueva`]: diferida(<PaginaCompra />),
+  [`${RAIZ_MODULO}/ventas/nueva`]: diferida(<PaginaVenta />),
+  [`${RAIZ_MODULO}/mermas/nueva`]: diferida(<PaginaMerma />),
+  [`${RAIZ_MODULO}/ajustes/nuevo`]: diferida(<PaginaAjuste />),
+  [`${RAIZ_MODULO}/comprobantes`]: diferida(<PaginaComprobantes />),
+  [`${RAIZ_MODULO}/comprobantes/:id`]: diferida(<PaginaDetalleComprobante />),
 }
 
 export const rutas: RouteObject[] = [

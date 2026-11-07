@@ -1,7 +1,7 @@
 // Combobox de clientes y proveedores (docs/UI-UX.md §4): busca en la API por documento o razón social
 // (GET /terceros?q=, 300 ms después de escribir), muestra tipo y número en font-mono y, con permiso, "+ Nuevo"
 // abre el alta con validación del RUC en vivo. Al crear, el nuevo queda elegido.
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, type Ref } from 'react'
 import { ChevronsUpDownIcon, PlusIcon } from 'lucide-react'
 import { cn } from 'cn'
 import { useTerceros, type RolTercero, type Tercero } from '@/api/terceros'
@@ -19,17 +19,26 @@ export const ESPERA_BUSQUEDA_MS = 300
 type Props = {
   /** id del botón (para el <label htmlFor>). */
   id: string
-  valor: Tercero | null
+  /** Basta con el resumen (id, documento y razón social): así sirve también el tercero de un comprobante. */
+  valor: Pick<Tercero, 'id' | 'tipoDocumento' | 'numeroDocumento' | 'razonSocial'> | null
   alCambiar: (tercero: Tercero | null) => void
   /** Solo proveedores o solo clientes. */
   rol?: RolTercero
   'aria-invalid'?: boolean
   'aria-describedby'?: string
   deshabilitado?: boolean
+  /** Ref del botón (react-hook-form lo usa para enfocar el campo con error). */
+  ref?: Ref<HTMLButtonElement>
+  /**
+   * Texto corto cuando no hay nada elegido (en filtros angostos: "RUC o razón social"). El texto completo
+   * ("Buscar … por RUC o razón social") queda como descripción accesible del combobox.
+   */
+  textoVacio?: string
 }
 
-export function SelectorTercero({ id, valor, alCambiar, rol, deshabilitado, ...aria }: Props) {
+export function SelectorTercero({ id, valor, alCambiar, rol, deshabilitado, ref, textoVacio, ...aria }: Props) {
   const idLista = useId()
+  const idAyuda = useId()
   const disparador = useRef<HTMLButtonElement>(null)
   const puedeCrear = usePuede('terceros:editar')
   const [abierto, setAbierto] = useState(false)
@@ -47,13 +56,20 @@ export function SelectorTercero({ id, valor, alCambiar, rol, deshabilitado, ...a
   const consulta = useTerceros({ q: q || undefined, rol, pagina: 1, tamano: 20 }, abierto)
   const terceros = consulta.data?.datos.filter((t) => t.activo) ?? []
   const etiquetaRol = rol === 'CLIENTE' ? 'cliente' : rol === 'PROVEEDOR' ? 'proveedor' : 'cliente o proveedor'
+  const textoCompleto = `Buscar ${etiquetaRol} por RUC o razón social`
+  const describir = !!textoVacio && !valor
+  const descripcion = [aria['aria-describedby'], describir ? idAyuda : null].filter(Boolean).join(' ') || undefined
 
   return (
     <>
       <Popover open={abierto} onOpenChange={setAbierto}>
         <PopoverTrigger asChild>
           <Button
-            ref={disparador}
+            ref={(boton: HTMLButtonElement | null) => {
+              disparador.current = boton
+              if (typeof ref === 'function') ref(boton)
+              else if (ref) ref.current = boton
+            }}
             id={id}
             type="button"
             variant="outline"
@@ -61,20 +77,23 @@ export function SelectorTercero({ id, valor, alCambiar, rol, deshabilitado, ...a
             aria-expanded={abierto}
             aria-controls={abierto ? idLista : undefined}
             disabled={deshabilitado}
-            className={cn('h-9 w-full justify-between font-normal', !valor && 'text-muted-foreground')}
+            // min-w-0 + truncate: el texto nunca desborda el botón (se corta con "…"), en escritorio ni en celular.
+            className={cn('h-9 w-full min-w-0 justify-between font-normal', !valor && 'text-muted-foreground')}
             {...aria}
+            aria-describedby={descripcion}
           >
             {valor ? (
               <span className="flex min-w-0 items-center gap-2">
-                <span className="font-mono text-xs">{textoDocumento(valor)}</span>
+                <span className="shrink-0 font-mono text-xs">{textoDocumento(valor)}</span>
                 <span className="truncate">{valor.razonSocial}</span>
               </span>
             ) : (
-              `Buscar ${etiquetaRol} por RUC o razón social`
+              <span className="min-w-0 truncate">{textoVacio ?? textoCompleto}</span>
             )}
-            <ChevronsUpDownIcon aria-hidden="true" className="opacity-50" />
+            <ChevronsUpDownIcon aria-hidden="true" className="shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
+        {describir && <span id={idAyuda} className="sr-only">{textoCompleto}</span>}
         <PopoverContent className="w-(--radix-popover-trigger-width) min-w-80 p-0" align="start">
           <Command shouldFilter={false} label={`Buscar ${etiquetaRol}`}>
             <CommandInput value={texto} onValueChange={setTexto} placeholder="RUC, DNI o razón social…" aria-label={`Buscar ${etiquetaRol}`} />

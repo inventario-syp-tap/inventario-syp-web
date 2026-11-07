@@ -30,6 +30,9 @@ export default defineConfig(({ mode }) => {
       setupFiles: ['./src/pruebas/configurar.ts'],
       css: false,
       restoreMocks: true,
+      // Las pruebas de formularios escriben con user-event tecla por tecla: con la PC cargada superaban los 5 s
+      // por defecto (también las del S7). 15 s evita falsos fallos sin ocultar cuelgues reales.
+      testTimeout: 15_000,
       coverage: {
         provider: 'v8',
         include: ['src/**/*.{ts,tsx}'],
