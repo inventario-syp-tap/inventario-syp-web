@@ -1,10 +1,12 @@
-// Barra superior: migas de pan y menú de usuario (Cambiar contraseña, Tema, Salir).
-// El selector de periodo y el chip de estado llegan con el Sprint 9 (Periodos).
+// Barra superior: migas de pan, chip del estado del mes en curso (enlaza a Periodos) y menú de usuario
+// (Cambiar contraseña, Tema, Salir). El selector del periodo de trabajo (docs/UI-UX.md §3) queda para otro sprint.
 import { Link, useNavigate } from 'react-router'
 import { ChevronDownIcon, KeyRoundIcon, LogOutIcon, MoonIcon, SunIcon, UserIcon } from 'lucide-react'
 import { RAIZ_MODULO } from '../paginas'
 import { useTema } from '../tema'
 import { cerrarSesion } from '@/api/auth'
+import { useEstadoMes } from '@/api/periodos'
+import { ChipEstadoPeriodo } from '@/componentes/comunes/chip-estado-periodo'
 import {
   Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator,
 } from '@/componentes/ui/breadcrumb'
@@ -14,6 +16,8 @@ import {
 } from '@/componentes/ui/dropdown-menu'
 import { Separator } from '@/componentes/ui/separator'
 import { SidebarTrigger } from '@/componentes/ui/sidebar'
+import { formatearPeriodo, hoyIso } from '@/lib/formato'
+import { TEXTO_ESTADO_PERIODO } from '@/lib/periodos'
 import { useSesion } from '@/lib/sesion'
 
 export function Encabezado({ titulo }: { titulo: string }) {
@@ -21,6 +25,7 @@ export function Encabezado({ titulo }: { titulo: string }) {
   const { tema, alternarTema } = useTema()
   const navegar = useNavigate()
   const esInicio = titulo === 'Inicio'
+  const mesEnCurso = useEstadoMes(hoyIso())
 
   const salir = async () => {
     await cerrarSesion()
@@ -53,7 +58,14 @@ export function Encabezado({ titulo }: { titulo: string }) {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="ml-auto">
+      <div className="ml-auto flex items-center gap-2">
+        {mesEnCurso && (
+          <Link to={`${RAIZ_MODULO}/periodos`}
+            aria-label={`Mes en curso: ${formatearPeriodo(mesEnCurso.anio, mesEnCurso.mes)}, ${TEXTO_ESTADO_PERIODO[mesEnCurso.estado]}. Ir a Periodos`}
+            className="hidden rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:inline-flex">
+            <ChipEstadoPeriodo estado={mesEnCurso.estado} prefijo={formatearPeriodo(mesEnCurso.anio, mesEnCurso.mes)} />
+          </Link>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" aria-label={`Menú de usuario: ${usuario?.nombre ?? ''}`}>

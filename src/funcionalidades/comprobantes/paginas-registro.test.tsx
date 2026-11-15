@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { toast } from 'sonner'
+import { MENSAJE_MES_CERRADO } from './formulario/formulario-comprobante'
 import { PaginaAjuste, PaginaCompra, PaginaMerma, PaginaVenta } from './paginas-registro'
 import { solicitar } from '@/api/cliente'
 import { ErrorApi } from '@/lib/errores'
@@ -10,6 +11,7 @@ import { crearApiFalsa, renderizarEnRuta } from '@/pruebas/api-falsa'
 import {
   clienteDemo, comprobanteDemo, establecimientosDemo, productosDemo, proveedorDemo, resultadoDemo, ventaDemo,
 } from '@/pruebas/comprobantes-demo'
+import { periodosAnioDemo } from '@/pruebas/periodos-demo'
 
 vi.mock('@/api/cliente', () => ({ solicitar: vi.fn() }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }))
@@ -120,21 +122,43 @@ describe('Registrar compra', () => {
     expect(screen.getByLabelText('Fecha de emisión')).toHaveAccessibleDescription('Ese mes está cerrado.')
   })
 
-  it('409 ORDEN_EN_CONFLICTO: "Reintentar" reenvía lo mismo', async () => {
-    let intentos = 0
-    api.en('POST', '/comprobantes/compras', () => {
-      intentos += 1
-      if (intentos === 1) throw new ErrorApi(409, 'ORDEN_EN_CONFLICTO', 'x')
-      return resultadoDemo(comprobanteDemo())
-    })
+  it.each(['ORDEN_EN_CONFLICTO', 'CONFLICTO_CONCURRENTE'])('409 %s: "Reintentar" vuelve a cargar los datos y no reenvía', async (codigo) => {
+    api.en('POST', '/comprobantes/compras', () => { throw new ErrorApi(409, codigo, 'x') })
     renderizarEnRuta(<PaginaCompra />, ruta)
     await llenarCompra()
     await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
-    expect(await screen.findByText('Otro usuario modificó este kardex al mismo tiempo; vuelve a intentarlo.')).toBeInTheDocument()
+    expect(await screen.findByText('Otro usuario modificó estos datos al mismo tiempo.')).toBeInTheDocument()
+    const cargasPrevias = api.hechas('GET', '/productos').length
     await userEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
-    await waitFor(() => expect(api.hechas('POST', '/comprobantes/compras')).toHaveLength(2))
-    const [primero, segundo] = api.hechas('POST', '/comprobantes/compras')
-    expect(segundo.cuerpo).toEqual(primero.cuerpo)
+    // Recarga lo que muestra el formulario (productos, stock…) y quita el aviso, pero no reenvía la compra.
+    await waitFor(() => expect(api.hechas('GET', '/productos').length).toBeGreaterThan(cargasPrevias))
+    expect(screen.queryByText('Otro usuario modificó estos datos al mismo tiempo.')).not.toBeInTheDocument()
+    expect(api.hechas('POST', '/comprobantes/compras')).toHaveLength(1)
+    // Los datos escritos siguen ahí: la persona revisa y vuelve a guardar.
+    expect(screen.getByLabelText('Serie')).toHaveValue('F001')
+  })
+
+  it('mes cerrado (GET /periodos): aviso en la fecha y «Guardar» deshabilitado; con un mes abierto se puede guardar', async () => {
+    api.en('GET', '/periodos', periodosAnioDemo(2026, [1, 2, 3]))
+    api.en('POST', '/comprobantes/compras', resultadoDemo(comprobanteDemo({ fecha: '2026-04-02' })))
+    renderizarEnRuta(<PaginaCompra />, ruta)
+    const fecha = await screen.findByLabelText('Fecha de emisión')
+    await waitFor(() => expect(fecha).toHaveAccessibleDescription(MENSAJE_MES_CERRADO))
+    expect(MENSAJE_MES_CERRADO).toBe('El mes está cerrado. Para registrar o editar, un usuario Contador o Administrador debe reabrirlo en Periodos.')
+    expect(fecha).toHaveAttribute('aria-invalid', 'true')
+    const guardar = screen.getByRole('button', { name: 'Guardar' })
+    expect(guardar).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.getByRole('button', { name: 'Guardar y nueva' })).toBeDisabled()
+    await llenarCompra()
+    await userEvent.click(guardar)
+    expect(api.hechas('POST', '/comprobantes/compras')).toHaveLength(0)
+
+    await userEvent.clear(fecha)
+    await userEvent.type(fecha, '2026-04-02')
+    await waitFor(() => expect(guardar).toHaveAttribute('aria-disabled', 'false'))
+    expect(fecha).not.toHaveAccessibleDescription(MENSAJE_MES_CERRADO)
+    await userEvent.click(guardar)
+    await waitFor(() => expect(api.hechas('POST', '/comprobantes/compras')).toHaveLength(1))
   })
 
   it('"Guardar y nueva" limpia el formulario y conserva la fecha', async () => {

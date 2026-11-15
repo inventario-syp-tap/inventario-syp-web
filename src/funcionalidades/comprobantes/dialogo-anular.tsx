@@ -1,6 +1,7 @@
 // Anular un comprobante (docs/UI-UX.md §5.7): confirmación con motivo obligatorio que repite el efecto. Anular
 // una entrada puede dejar negativo el stock → DialogoStockNegativo y reenvío con la confirmación. Un 409
-// ORDEN_EN_CONFLICTO deja un aviso persistente con "Reintentar"; los demás errores, un aviso persistente.
+// ORDEN_EN_CONFLICTO o CONFLICTO_CONCURRENTE deja un aviso persistente con "Reintentar", que vuelve a cargar los
+// datos (no reenvía la anulación); los demás errores, un aviso persistente.
 import { useEffect, type RefObject } from 'react'
 import { toast } from 'sonner'
 import { documentoComprobante, nombreOperacion, participio } from './esquemas'
@@ -9,7 +10,7 @@ import { anularComprobante, type Comprobante, type DatosAnular } from '@/api/com
 import { textoProducto, useProductos } from '@/api/productos'
 import { DialogoConfirmacion } from '@/componentes/comunes/dialogo-confirmacion'
 import { DialogoStockNegativo } from '@/componentes/comunes/dialogo-stock-negativo'
-import { mensajeDeError } from '@/lib/errores'
+import { MENSAJE_CONFLICTO, mensajeDeError } from '@/lib/errores'
 
 type Props = {
   comprobante: Comprobante | undefined
@@ -33,16 +34,17 @@ export function DialogoAnular({ comprobante, abierto, alCambiarAbierto, focoAlCe
     alError: (error) => toast.error(mensajeDeError(error), { duration: Infinity }),
   })
 
-  const { hayConflicto, reintentar, descartarConflicto } = escritura
+  const { hayConflicto, recargar, descartarConflicto } = escritura
   useEffect(() => {
     if (!hayConflicto) return
-    toast.error('Otro usuario modificó este kardex al mismo tiempo; vuelve a intentarlo.', {
+    toast.error(MENSAJE_CONFLICTO, {
       id: `conflicto-${id}`,
+      description: 'No se anuló nada. Reintentar vuelve a cargar los datos; revísalos y vuelve a anular si corresponde.',
       duration: Infinity,
-      action: { label: 'Reintentar', onClick: reintentar },
+      action: { label: 'Reintentar', onClick: recargar },
       onDismiss: descartarConflicto,
     })
-  }, [hayConflicto, id, reintentar, descartarConflicto])
+  }, [hayConflicto, id, recargar, descartarConflicto])
 
   const detalle = escritura.confirmacion
   const producto = detalle?.productoId ? productos.data?.find((p) => p.id === detalle.productoId) : undefined

@@ -17,6 +17,11 @@ export const PaginaAjuste = lazy(() => registro().then((m) => ({ default: m.Pagi
 export const PaginaComprobantes = lazy(() => import('@/funcionalidades/comprobantes/pagina-comprobantes').then((m) => ({ default: m.PaginaComprobantes })))
 export const PaginaDetalleComprobante = lazy(() =>
   import('@/funcionalidades/comprobantes/pagina-detalle-comprobante').then((m) => ({ default: m.PaginaDetalleComprobante })))
+export const PaginaKardex = lazy(() => import('@/funcionalidades/kardex/pagina-kardex').then((m) => ({ default: m.PaginaKardex })))
+export const PaginaPeriodos = lazy(() => import('@/funcionalidades/periodos/pagina-periodos').then((m) => ({ default: m.PaginaPeriodos })))
+export const PaginaCierreAnual = lazy(() => import('@/funcionalidades/periodos/pagina-cierre-anual').then((m) => ({ default: m.PaginaCierreAnual })))
+export const PaginaSaldosIniciales = lazy(() =>
+  import('@/funcionalidades/saldos-iniciales/pagina-saldos-iniciales').then((m) => ({ default: m.PaginaSaldosIniciales })))
 
 /** Mientras llega el código de la pantalla: esqueleto (nunca en blanco, docs/UI-UX.md §6). */
 export function CargandoPantalla() {

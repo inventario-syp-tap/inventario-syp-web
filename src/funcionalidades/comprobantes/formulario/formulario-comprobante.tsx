@@ -2,14 +2,15 @@
 // registrar o editar (docs/UI-UX.md §5.3 a §5.7). Muestra y captura; la API calcula y valida.
 //  - Ctrl+Enter guarda · Alt+N agrega una línea · "Guardar" deshabilitado mientras envía · foco en el primer error.
 //  - Errores de la API: errores-operacion.ts decide si van junto al campo, en el encabezado, al diálogo de stock
-//    negativo (reenvío con la confirmación) o con "Reintentar" (ORDEN_EN_CONFLICTO).
+//    negativo (reenvío con la confirmación) o con "Reintentar" (conflicto: vuelve a cargar, no reenvía).
+//  - Mes cerrado (GET /periodos?anio): aviso en la Fecha y "Guardar" deshabilitado antes de enviar. El 409
+//    PERIODO_CERRADO de la API se sigue manejando (el mes pudo cerrarse mientras se llenaba el formulario).
 import { useEffect, useId, useRef, useState } from 'react'
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
-import { RotateCwIcon } from 'lucide-react'
 import { LineasComprobante } from './lineas-comprobante'
 import { ubicarErrorOperacion, type UbicacionError } from '../errores-operacion'
 import {
@@ -23,9 +24,11 @@ import {
 } from '@/api/comprobantes'
 import { CLAVES } from '@/api/claves'
 import { useEstablecimientos } from '@/api/establecimientos'
+import { useEstadoMes } from '@/api/periodos'
 import { textoProducto, useProductos } from '@/api/productos'
 import { RAIZ_MODULO } from '@/app/paginas'
 import { Aviso } from '@/componentes/comunes/aviso'
+import { AvisoConflicto } from '@/componentes/comunes/aviso-conflicto'
 import { Campo } from '@/componentes/comunes/campo'
 import { CampoDecimal } from '@/componentes/comunes/campo-decimal'
 import { CampoFecha } from '@/componentes/comunes/campo-fecha'
@@ -52,13 +55,19 @@ type Props = {
   comprobante?: Comprobante
   /** Al terminar de editar (o cancelar la edición). */
   alTerminarEdicion?: () => void
+  /** "Reintentar" tras un conflicto, además de invalidar las consultas (al editar: volver a cargar el comprobante). */
+  alRecargar?: () => void
 }
+
+/** Aviso previo de mes cerrado (docs/UI-UX.md §4, CampoFecha). */
+export const MENSAJE_MES_CERRADO =
+  'El mes está cerrado. Para registrar o editar, un usuario Contador o Administrador debe reabrirlo en Periodos.'
 
 function mensajeExito(comprobante: Comprobante, edicion: boolean): string {
   return `${nombreOperacion(comprobante)} ${documentoComprobante(comprobante)} ${participio(comprobante, edicion ? 'actualizad' : 'registrad')} · kardex recalculado`
 }
 
-export function FormularioComprobante({ naturaleza, fechaInicial, establecimientoInicial, comprobante, alTerminarEdicion }: Props) {
+export function FormularioComprobante({ naturaleza, fechaInicial, establecimientoInicial, comprobante, alTerminarEdicion, alRecargar }: Props) {
   const id = useId()
   const navegar = useNavigate()
   const clienteConsultas = useQueryClient()
@@ -91,7 +100,7 @@ export function FormularioComprobante({ naturaleza, fechaInicial, establecimient
     return producto ? textoProducto(producto) : null
   }
 
-  const aplicarUbicacion = (ubicacion: Exclude<UbicacionError, { tipo: 'confirmar' | 'reintentar' }>) => {
+  const aplicarUbicacion = (ubicacion: Exclude<UbicacionError, { tipo: 'confirmar' | 'recargar' }>) => {
     ubicacion.campos.forEach(({ campo, mensaje }, i) => setError(campo, { type: 'api', message: mensaje }, { shouldFocus: i === 0 }))
     setErrorEncabezado(ubicacion.mensaje)
     if (ubicacion.campos.length === 0) enfocarEncabezado()
@@ -109,8 +118,9 @@ export function FormularioComprobante({ naturaleza, fechaInicial, establecimient
     return registrarAjuste(cuerpo as DatosAjuste)
   }
 
-  const escritura = useEscritura<Cuerpo>({
+  const escritura = useEscritura<Cuerpo, ResultadoEscritura>({
     ejecutar,
+    alRecargar,
     alExito: (resultado) => {
       const guardado = resultado.comprobante
       toast.success(mensajeExito(guardado, edicion), {
@@ -141,7 +151,12 @@ export function FormularioComprobante({ naturaleza, fechaInicial, establecimient
     },
   })
 
+  const estadoMes = useEstadoMes(fecha)
+  const mesCerrado = estadoMes?.estado === 'CERRADO'
+
   const enviar = handleSubmit((valores) => {
+    // Mes cerrado: el aviso ya está en la Fecha y «Guardar» deshabilitado (Ctrl+Enter tampoco envía).
+    if (mesCerrado) return
     setErrorEncabezado(null)
     if (comprobante) {
       const cambios = aEditar(naturaleza, valores, inicial)
@@ -183,7 +198,7 @@ export function FormularioComprobante({ naturaleza, fechaInicial, establecimient
   const enviando = escritura.enviando
   // "Guardar" no se deshabilita con `disabled` (el foco caería en <body> al confirmar el stock negativo o al quedar
   // en solo lectura): se marca aria-disabled y se ignora el clic.
-  const bloqueado = enviando || soloLectura
+  const bloqueado = enviando || soloLectura || mesCerrado
 
   return (
     <form
@@ -204,20 +219,7 @@ export function FormularioComprobante({ naturaleza, fechaInicial, establecimient
       <div id={`${id}-error-encabezado`} ref={encabezado} tabIndex={-1}
         className="flex flex-col gap-2 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
         {errorEncabezado && <Aviso tono="error" titulo={errorEncabezado} />}
-        {escritura.hayConflicto && (
-          <Aviso
-            tono="error"
-            titulo="Otro usuario modificó este kardex al mismo tiempo; vuelve a intentarlo."
-            acciones={(
-              <Button type="button" variant="outline" size="sm" disabled={enviando} onClick={escritura.reintentar}>
-                <RotateCwIcon aria-hidden="true" />
-                Reintentar
-              </Button>
-            )}
-          >
-            No se guardó nada. Reintentar envía lo mismo otra vez.
-          </Aviso>
-        )}
+        {escritura.hayConflicto && <AvisoConflicto alReintentar={escritura.recargar} />}
       </div>
 
       <fieldset disabled={soloLectura} className="flex flex-col gap-5">
@@ -294,7 +296,7 @@ export function FormularioComprobante({ naturaleza, fechaInicial, establecimient
             </>
           )}
 
-          <Campo id={`${id}-fecha`} etiqueta="Fecha de emisión" error={errors.fecha?.message}>
+          <Campo id={`${id}-fecha`} etiqueta="Fecha de emisión" error={errors.fecha?.message ?? (mesCerrado ? MENSAJE_MES_CERRADO : undefined)}>
             {(a) => <CampoFecha {...a} {...register('fecha')} />}
           </Campo>
 
@@ -398,7 +400,7 @@ export function FormularioComprobante({ naturaleza, fechaInicial, establecimient
             <Button type="button" variant="outline" disabled={enviando} onClick={alTerminarEdicion}>Cancelar</Button>
           )}
           {!edicion && (
-            <Button type="submit" variant="outline" disabled={enviando || soloLectura}
+            <Button type="submit" variant="outline" disabled={enviando || soloLectura || mesCerrado}
               onClick={() => { guardarYNueva.current = true }}>Guardar y nueva</Button>
           )}
           <Button ref={botonGuardar} type="submit" aria-disabled={bloqueado} aria-keyshortcuts="Control+Enter"

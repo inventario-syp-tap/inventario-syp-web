@@ -51,13 +51,37 @@ describe('comprobantes (S8)', () => {
     expect(puede('ventas:registrar', ['inventario:CONSULTA'])).toBe(false)
   })
 
-  it('editar: A y C todo lo registrado; S solo compras y ventas; nadie un anulado', () => {
-    const merma = { naturaleza: 'MERMA', estado: 'REGISTRADO' }
-    const compra = { naturaleza: 'COMPRA', estado: 'REGISTRADO' }
-    expect(puedeEditarComprobante(merma, ['inventario:CONTADOR'])).toBe(true)
-    expect(puedeEditarComprobante(merma, ['inventario:ASISTENTE'])).toBe(false)
-    expect(puedeEditarComprobante(compra, ['inventario:ASISTENTE'])).toBe(true)
-    expect(puedeEditarComprobante(compra, ['inventario:CONSULTA'])).toBe(false)
-    expect(puedeEditarComprobante({ ...compra, estado: 'ANULADO' }, ['inventario:ADMIN'])).toBe(false)
+  it('editar: A y C todo lo registrado; S solo sus compras y ventas (creadoPorId); nadie un anulado', () => {
+    const yo = 'usuario-asistente'
+    const merma = { naturaleza: 'MERMA', estado: 'REGISTRADO', creadoPorId: yo }
+    const compra = { naturaleza: 'COMPRA', estado: 'REGISTRADO', creadoPorId: yo }
+    const ajena = { ...compra, creadoPorId: 'otro-usuario' }
+    expect(puedeEditarComprobante(merma, ['inventario:CONTADOR'], yo)).toBe(true)
+    expect(puedeEditarComprobante(ajena, ['inventario:CONTADOR'], yo)).toBe(true)
+    expect(puedeEditarComprobante(merma, ['inventario:ASISTENTE'], yo)).toBe(false)
+    expect(puedeEditarComprobante(compra, ['inventario:ASISTENTE'], yo)).toBe(true)
+    expect(puedeEditarComprobante(ajena, ['inventario:ASISTENTE'], yo)).toBe(false)
+    expect(puedeEditarComprobante(compra, ['inventario:ASISTENTE'], undefined)).toBe(false)
+    expect(puedeEditarComprobante(compra, ['inventario:CONSULTA'], yo)).toBe(false)
+    expect(puedeEditarComprobante({ ...compra, estado: 'ANULADO' }, ['inventario:ADMIN'], yo)).toBe(false)
+  })
+})
+
+describe('kardex, periodos y saldos (S9)', () => {
+  it('reordenar A, C; recalcular solo A', () => {
+    expect(puede('kardex:reordenar', ['inventario:CONTADOR'])).toBe(true)
+    expect(puede('kardex:reordenar', ['inventario:ASISTENTE'])).toBe(false)
+    expect(puede('kardex:recalcular', ['inventario:ADMIN'])).toBe(true)
+    expect(puede('kardex:recalcular', ['inventario:CONTADOR'])).toBe(false)
+  })
+
+  it('cerrar, reabrir, cierre anual y saldo manual A, C; cerrar en bloque solo A', () => {
+    for (const accion of ['periodos:cerrar', 'periodos:cierre-anual', 'saldos:editar'] as const) {
+      expect(puede(accion, ['inventario:CONTADOR'])).toBe(true)
+      expect(puede(accion, ['inventario:ASISTENTE'])).toBe(false)
+      expect(puede(accion, ['inventario:CONSULTA'])).toBe(false)
+    }
+    expect(puede('periodos:cerrar-en-bloque', ['inventario:ADMIN'])).toBe(true)
+    expect(puede('periodos:cerrar-en-bloque', ['inventario:CONTADOR'])).toBe(false)
   })
 })

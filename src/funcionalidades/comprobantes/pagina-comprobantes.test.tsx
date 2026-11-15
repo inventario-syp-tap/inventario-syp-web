@@ -79,13 +79,25 @@ describe('Comprobantes: lista', () => {
     expect(screen.queryByRole('button', { name: /^Anular / })).not.toBeInTheDocument()
   })
 
-  it('ASISTENTE edita solo compras y ventas y no anula', async () => {
+  it('ASISTENTE edita solo las compras y ventas que registró él (creadoPorId) y no anula', async () => {
+    const ajena = comprobanteDemo({ id: 'comp-5', numero: '130', creadoPorId: 'otro-usuario', creadoPor: 'Administrador (demo)' })
+    api.en('GET', '/comprobantes', { datos: [compra, venta, merma, ajena], total: 4, pagina: 1, tamano: 50 })
     lista(['inventario:ASISTENTE'])
     await screen.findByText('F001-0000123')
     expect(screen.getByRole('button', { name: 'Editar F001-0000123' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Editar E001-0000045' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Editar 00-IT-2026' })).not.toBeInTheDocument()
+    // Registrada por otro usuario: el ASISTENTE no ve «Editar» (la API igual lo impediría).
+    expect(screen.getByRole('button', { name: 'Ver F001-0000130' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Editar F001-0000130' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Anular / })).not.toBeInTheDocument()
+  })
+
+  it('CONTADOR ve «Editar» también en lo que registró otro usuario', async () => {
+    const ajena = comprobanteDemo({ id: 'comp-5', numero: '130', creadoPorId: 'otro-usuario' })
+    api.en('GET', '/comprobantes', { datos: [ajena], total: 1, pagina: 1, tamano: 50 })
+    lista(['inventario:CONTADOR'])
+    expect(await screen.findByRole('button', { name: 'Editar F001-0000130' })).toBeInTheDocument()
   })
 
   it('"Ver" abre el panel con las líneas y su efecto en el kardex', async () => {
@@ -96,6 +108,7 @@ describe('Comprobantes: lista', () => {
     expect(within(tabla).getByText('Chatarra pesada')).toBeInTheDocument()
     expect(within(tabla).getAllByText('S/ 1,000.00')).toHaveLength(2)
     expect(within(panel).getByRole('link', { name: 'Abrir el comprobante' })).toHaveAttribute('href', '/inventario/comprobantes/comp-1')
+    expect(within(panel).getByText('Registrado por').nextElementSibling).toHaveTextContent('Contadora (demo)')
   })
 
   it('anular exige motivo y lo envía; con stock negativo pide confirmación y reenvía', async () => {

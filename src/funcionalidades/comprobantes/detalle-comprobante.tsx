@@ -62,6 +62,10 @@ export function DetalleComprobante({ comprobante: c }: { comprobante: Comprobant
         {referencias && <Dato termino="Referencias">{referencias}</Dato>}
         {c.observacion && <Dato termino="Observación">{c.observacion}</Dato>}
         {c.origenImportacion && <Dato termino="Origen">Carga histórica ({c.origenImportacion})</Dato>}
+        <Dato termino="Registrado por">
+          {c.creadoPor ?? <span className="text-muted-foreground">Usuario que ya no existe</span>}
+          <span className="text-muted-foreground"> · {formatearFechaHora(c.creadoEn)}</span>
+        </Dato>
       </dl>
 
       <div className="overflow-x-auto rounded-md border">

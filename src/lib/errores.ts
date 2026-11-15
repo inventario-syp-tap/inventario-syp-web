@@ -44,6 +44,25 @@ function mensajePeriodoCerrado(d: Detalle): string {
   return `El mes${nombre} está cerrado: no se puede registrar ni modificar. Pide reabrirlo si necesitas cambiarlo.`
 }
 
+/** ORDEN_EN_CONFLICTO y CONFLICTO_CONCURRENTE: la API no guardó nada; "Reintentar" vuelve a cargar los datos. */
+export const MENSAJE_CONFLICTO = 'Otro usuario modificó estos datos al mismo tiempo.'
+
+/** true si el error es un conflicto entre usuarios (se vuelve a cargar, nunca se reenvía a ciegas). */
+export const esConflicto = (error: unknown): boolean => {
+  const codigo = codigoDeError(error)
+  return codigo === 'ORDEN_EN_CONFLICTO' || codigo === 'CONFLICTO_CONCURRENTE'
+}
+
+/** "2026-03" (detalle.periodo o detalle.anio + detalle.mes) → "marzo de 2026"; null si no viene. */
+function nombrePeriodo(d: Detalle): string | null {
+  const lista = Array.isArray(d.periodos) && typeof d.periodos[0] === 'string' ? d.periodos[0] : undefined
+  const periodo = /^(\d{4})-(\d{2})$/.exec(texto(d, 'periodo') ?? lista ?? '')
+  const anio = periodo?.[1] ?? texto(d, 'anio')
+  const mes = Number.parseInt(periodo?.[2] ?? texto(d, 'mes') ?? '', 10)
+  if (!anio || !Number.isFinite(mes) || mes < 1 || mes > 12) return null
+  return `${nombreMes(mes).toLowerCase()} de ${anio}`
+}
+
 const MENSAJES: Record<string, Plantilla> = {
   VALIDACION: 'Revisa los campos marcados.',
   NO_AUTENTICADO: 'Tu sesión terminó. Vuelve a ingresar.',
@@ -72,10 +91,22 @@ const MENSAJES: Record<string, Plantilla> = {
       ? `Falta el saldo inicial de ${anio}: haz el cierre anual de ${anio - 1}.`
       : 'Falta el saldo inicial del año: haz el cierre anual del año anterior.'
   },
-  ORDEN_EN_CONFLICTO: 'Otro usuario modificó este kardex al mismo tiempo; vuelve a intentarlo.',
+  ORDEN_EN_CONFLICTO: MENSAJE_CONFLICTO,
+  CONFLICTO_CONCURRENTE: MENSAJE_CONFLICTO,
   TERCERO_INEXISTENTE: 'Ese cliente o proveedor no existe o está inactivo.',
   ESTABLECIMIENTO_INEXISTENTE: 'Ese establecimiento no existe o está inactivo.',
   CIERRE_ANUAL_INCOMPLETO: 'Cierra los 12 meses antes del cierre anual.',
+  CIERRE_CON_SALDO_CERO_CON_COSTO: (d) => {
+    const nombre = nombrePeriodo(d)
+    return `No se puede cerrar ${nombre ?? 'el mes'}: hay movimientos con saldo cero y costo. Revísalos en el kardex (lista abajo).`
+  },
+  SALDO_INICIAL_REQUIERE_CONFIRMACION: (d) => {
+    const anio = texto(d, 'anioSiguiente') ?? texto(d, 'anio')
+    return `El saldo inicial${anio ? ` de ${anio}` : ' del año siguiente'} ya existe y es distinto. Elige si lo reemplazas o lo conservas.`
+  },
+  PERIODO_FUTURO: 'Ese mes aún no llega: no se puede cerrar un mes posterior al mes en curso.',
+  PERIODO_ANTERIOR_AL_INICIO: 'Ese mes es anterior al primer periodo registrado en el sistema: no hay nada que cerrar.',
+  PERIODO_NO_CERRADO: 'Ese mes no está cerrado: no hay nada que reabrir.',
   VIGENCIA_SUPERPUESTA: 'Ya existe una regla vigente en esas fechas para el mismo tipo, producto y operación. Cierra la anterior con "vigente hasta".',
   VIGENCIA_INVALIDA: 'La vigencia no es válida: usa AAAA-MM y que "vigente hasta" no sea anterior a "vigente desde".',
   OPERACION_NO_CORRESPONDE: 'La operación no corresponde al tipo de asiento (costo de ventas: 01 o 17 · merma: 13 · desmedro: 14 · ajustes: 28).',

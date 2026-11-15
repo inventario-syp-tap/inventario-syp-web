@@ -14,7 +14,7 @@
 | S6 Nube temprana (WEB) | ✅ terminado | `sprint/06-nube` | 27/10/2026 |
 | S7 Maestros (WEB) | ✅ terminado | `sprint/07-maestros` | 06/11/2026 |
 | S8 Operaciones (WEB) | ✅ terminado | `sprint/08-operaciones` | 07/11/2026 |
-| S9 Kardex y periodos (WEB) | pendiente | `sprint/09-kardex-periodos` | |
+| S9 Kardex y periodos (WEB) | ✅ terminado | `sprint/09-kardex-periodos` | 15/11/2026 |
 | S10 Libros y reportes (WEB) | pendiente | `sprint/10-libros-reportes` | |
 | S11 Contabilidad y control (WEB) | pendiente | `sprint/11-contabilidad-control` | |
 | S12 Dashboard y datos (WEB) | pendiente | `sprint/12-dashboard-datos` | |
@@ -349,3 +349,100 @@ También se corrigieron 4 de severidad baja:
 ### Cambio de equipo (06/11/2026)
 
 - Cambio de integrantes y de cuenta de GitHub (ver D-30 en la API).
+
+### S09 — kardex-periodos (15/11/2026)
+
+Rama `sprint/09-kardex-periodos`. Tipos regenerados con `pnpm run api:tipos` (+11 rutas: kardex, alertas, recalcular, periodos, cerrar, reabrir, cerrar en bloque, vista previa y confirmación del cierre anual, saldos iniciales). `ComprobanteDto` trae ahora `creadoPorId` y `creadoPor`.
+
+**Qué se hizo**
+- **Kardex** (`/inventario/kardex`, todos):
+  - filtros en la URL (`?producto&anio&mes=N|todo&detallado=1`), no en `localStorage`; sin `mes` se usa el mes en curso;
+  - tabla "tipo Excel" propia (`tabla-kardex.tsx`): Fecha · Comprobante · Op · Tercero/descripción y los grupos ENTRADAS / SALIDAS / SALDO con Cant., C.U. y Total; fila SALDO INICIAL y subtotal por mes en negrita (`bg-muted`) con el estado del mes; cabecera y las columnas Fecha y Comprobante fijas al desplazarse; «Detallado» agrega RUC/DNI y la descripción completa;
+  - valores de `GET /kardex` tal cual, formateados con big.js: cantidades 4 decimales, C.U. y totales 2, miles con coma, negativos con signo, ícono y texto "(negativo)";
+  - alertas con ícono y texto (⛔ Stock negativo, ↕ Fecha anterior al movimiento previo, ⚠ Saldo cero con costo, ⚠ SI desactualizado); resumen de `GET /kardex/alertas?anio` en un aviso superior con la lista desplegable y enlace a cada fila (`#fila-<movimientoId>`: la fila se resalta y recibe el foco);
+  - clic en una fila (o en su documento) → panel lateral con el comprobante y «Abrir el comprobante»;
+  - **Reordenar** (A, C): ↑/↓ solo entre movimientos de la misma fecha y en meses no cerrados, con confirmación que explica que el orden cambia el costo de las salidas del día; maneja stock negativo y conflicto;
+  - **Recalcular** (solo A): confirmación; recalcula el producto y año elegidos y avisa si quedaron saldos iniciales desactualizados.
+- **Periodos** (`/inventario/periodos?anio`, todos ven):
+  - doce tarjetas con estado (ícono + texto), movimientos, libro 12.1 (impreso el dd/mm/aaaa o "Pendiente") y asiento (exportado (n.º) o "Pendiente"), y quién y cuándo cerró;
+  - **Cerrar mes** (A, C; solo si el mes anterior no está abierto y no es futuro): diálogo que lista antes los saldos negativos del mes (`/kardex/alertas`, no bloquean); tras cerrar, aviso con los `saldosNegativos` y las diferencias con el cierre anterior que devuelve la API;
+  - `CIERRE_CON_SALDO_CERO_CON_COSTO`: el diálogo sigue abierto y lista los movimientos con enlace al kardex;
+  - **Reabrir** (A, C; solo el último mes cerrado): motivo obligatorio con zod (mismo límite que la API: 500); muestra las advertencias de la API;
+  - **Cerrar en bloque** (solo A): desde–hasta (`AAAA-MM`) y una confirmación que repite el rango.
+- **Cierre anual** (`/inventario/periodos/cierre-anual?anio`, A y C), asistente de 3 pasos:
+  1. meses abiertos (no deja avanzar);
+  2. saldo final, propuesto, existente (con origen y ⚠ desactualizado), diferencias con signo (`+0.01`) y resaltadas, comparación con ícono y texto, y advertencia si el propuesto queda negativo;
+  3. «Reemplazar el saldo inicial existente» (`confirmarReemplazo`) o «Conservar los existentes» (`conservarExistentes`), obligatorio si hay diferencias, y la casilla de stock negativo cuando corresponde.
+  - `SALDO_INICIAL_REQUIERE_CONFIRMACION` → vuelve al paso 2 con el mensaje; `CIERRE_ANUAL_INCOMPLETO` → paso 1; 409 de stock negativo → `DialogoStockNegativo` y reenvío.
+- **Saldos iniciales** (`/inventario/saldos-iniciales?anio`, todos): cantidad, total, origen (Importación, Cierre anual, Manual), ⚠ "Desactualizado", motivo y quién lo registró. A y C editan un saldo como manual (`PUT /saldos-iniciales/:id`): zod, decimales como texto (`CampoDecimal`, 4 y 10 decimales), motivo obligatorio, stock negativo con confirmación.
+- **Pendientes del S8 resueltos**:
+  - formularios de compra, venta, merma, ajuste y Editar comprobante: si el mes de la fecha está cerrado (`GET /periodos?anio`, `useEstadoMes`), la Fecha muestra "El mes está cerrado. Para registrar o editar, un usuario Contador o Administrador debe reabrirlo en Periodos" y «Guardar» queda deshabilitado (`aria-disabled`); el 409 `PERIODO_CERRADO` se sigue manejando;
+  - «Editar» oculto al ASISTENTE en los comprobantes que no registró (`creadoPorId` = id de la sesión) y «Registrado por» en el detalle;
+  - `ORDEN_EN_CONFLICTO` y `CONFLICTO_CONCURRENTE`: `AvisoConflicto` ("Otro usuario modificó estos datos al mismo tiempo") con **Reintentar, que vuelve a cargar los datos y no reenvía** (en formularios, anular, mover, cerrar, reabrir, cerrar en bloque, cierre anual y saldo manual). Al editar, recarga el comprobante y el formulario;
+  - chip del estado del **mes en curso** en la barra superior (enlaza a Periodos).
+- **Comunes y utilidades**: `ChipEstadoPeriodo`, `AvisoConflicto`, `SelectorPeriodo`; `IconoAlerta` con `LIBRO_PENDIENTE_IMPRESION`; `Cifra` con el tipo `importe` (2 decimales sin "S/"); `lib/periodos.ts` (años, `anioDeUrl`, textos de estado), `lib/alertas.ts` (textos de alertas); `invalidarTrasEscritura` pasa a `api/claves.ts` e incluye `alertas` y `saldosIniciales`.
+- **Permisos** (`lib/roles.ts`): `kardex:reordenar` (A, C), `kardex:recalcular` (A), `periodos:cerrar` (A, C), `periodos:cerrar-en-bloque` (A), `periodos:cierre-anual` (A, C), `saldos:editar` (A, C); `puedeEditarComprobante` compara `creadoPorId`.
+- **Mensajes** (`lib/errores.ts` y UI-UX §6): `CONFLICTO_CONCURRENTE`, `PERIODO_FUTURO`, `PERIODO_ANTERIOR_AL_INICIO`, `PERIODO_NO_CERRADO`, `CIERRE_CON_SALDO_CERO_CON_COSTO` (con el mes) y `SALDO_INICIAL_REQUIERE_CONFIRMACION` (con el año).
+- Documentación: `CONTRATO-API.md` §6.3 (actualizado) y §6.4 (nuevo); `UI-UX.md` §4, §5.9, §5.10 y §6.
+
+**Decisiones**
+- **Reintentar ante un conflicto recarga y no reenvía** (cambia la decisión del S8, que reenviaba): la persona ve los datos nuevos y decide. Aprobado por el equipo.
+- **Saldos iniciales sin columna C.U.**: `SaldoInicialDto` no la trae y dividir costo entre cantidad sería calcular en la web. Se agregará cuando la API la entregue. Aprobado.
+- **Tarjetas de periodos sin TN de compras y ventas ni número de movimientos**: `PeriodoDto` solo trae `tieneMovimientos`; sumar en la web sería calcular. Se muestra "Con movimientos / Sin movimientos". Aprobado.
+- **Chip del mes en curso** en la barra superior; el selector del periodo de trabajo (§3) queda para otro sprint. Aprobado.
+- **Advertencias antes de cerrar** desde `GET /kardex/alertas` (la API no tiene vista previa del cierre; los `saldosNegativos` oficiales llegan después de cerrar).
+- **`CIERRE_CON_SALDO_CERO_CON_COSTO`**: el OpenAPI no documenta su `detalle`; se lee de forma tolerante (`movimientos[]` o `filas[]`) y, si no viene, se usan las alertas `SALDO_CERO_CON_COSTO` del mes.
+- **Tabla del kardex propia** (no `TablaDatos`): necesita encabezados agrupados, filas de saldo y subtotales. Solo se fijan Fecha y Comprobante para no tapar la tabla en pantallas medianas.
+- **Saldo manual**: solo se edita uno existente; la API aún no tiene un alta para un producto y año sin saldo.
+- **Cerrar un mes**: se ofrece si el mes anterior del año no está abierto y no es posterior al mes en curso (Lima). Enero depende de diciembre del año anterior: lo valida la API (`PERIODO_ANTERIOR_ABIERTO`).
+
+**Pendientes para la API (Sprint 10)**
+- PeriodoDto: número de movimientos y TN de compras y ventas del mes, calculados en la API.
+- PeriodoDto: estado "desactualizado" del libro 12.1 y del asiento.
+- Documentar en el OpenAPI el detalle de CIERRE_CON_SALDO_CERO_CON_COSTO (lista de movimientos).
+- SaldoInicialDto: costoUnitario.
+- Endpoint para crear un saldo inicial manual cuando no existe para un producto y año.
+- Vista previa de las advertencias antes de cerrar un mes (opcional).
+
+**Pendientes (web)**
+- Exportar el kardex a Excel y el PDF del 13.1 (Sprint 10).
+- Selector del periodo de trabajo en la barra superior (§3).
+- El paquete inicial (`index-*.js`) quedó en ~501 kB y Vite muestra la advertencia de 500 kB: revisar la división en el S13.
+- Capturas `S09-*.png`, solo con la base de demostración y registradas en `docs/archivos-revisados.txt`.
+
+**Cómo probar**
+```
+pnpm run lint ; pnpm test ; pnpm run build ; pnpm run revisar:datos
+pnpm run dev  →  http://localhost:5173/inventario/kardex   (API con pnpm run start:demo)
+```
+1. Como CONTADOR (`contadora.demo@syp.invalid`), abre Kardex, elige FIERRO, el año y un mes. Compara cada cifra con `GET /kardex` (cantidades 4 decimales; C.U. y totales 2). Cambia a "Todo el año" y marca «Detallado»: la URL cambia y se puede recargar.
+2. En el aviso de alertas, abre la lista y sigue un enlace: la fila queda resaltada. Haz clic en una fila: se abre el panel con el comprobante.
+3. Con dos movimientos del mismo día, usa ↑/↓: aparece la confirmación y el kardex se recalcula.
+4. En Periodos, cierra el primer mes abierto (revisa las advertencias), reabre el último cerrado (el motivo es obligatorio) y, como ADMIN (`admin.demo@syp.invalid`), cierra en bloque un rango.
+5. Con un mes cerrado, abre Registrar compra con una fecha de ese mes: aviso en la Fecha y «Guardar» deshabilitado.
+6. En Cierre anual del año anterior, recorre los 3 pasos y elige reemplazar o conservar. En Saldos iniciales del año siguiente revisa el origen y edita uno como manual.
+7. Como `asistente.demo@syp.invalid`: no ve «Editar» en comprobantes que no registró, ni Reordenar, Recalcular, Cerrar o Cierre anual. Como `consulta.demo@syp.invalid`: solo lectura.
+
+**Números**: 255 pruebas en 29 archivos (+45 y +5 archivos):
+- `pagina-kardex` 13 (filtros en la URL, formato 4/2 decimales con miles y negativos, alertas con texto, panel, vacío/error, permisos, mover con confirmación, conflicto, recalcular);
+- `pagina-periodos` 14 (utilidades, tarjetas, permisos, cerrar con advertencias, saldo cero con costo, `PERIODO_FUTURO`/`PERIODO_ANTERIOR_AL_INICIO`, conflicto, reabrir con motivo, `PERIODO_NO_CERRADO`, cerrar en bloque);
+- `pagina-cierre-anual` 5 (meses abiertos, diferencias con signo, reemplazar/conservar, `SALDO_INICIAL_REQUIERE_CONFIRMACION`, stock negativo);
+- `pagina-saldos-iniciales` 4 y `encabezado` 2;
+- `paginas-registro` 17 (conflicto que recarga y mes cerrado), `pagina-comprobantes` 15 (Editar del ASISTENTE y «Registrado por»), `errores-operacion` 17, `errores` 13 y `roles` 9.
+
+**Revisión `revisor-ux`**: APROBADO CON OBSERVACIONES, sin hallazgos altos ni datos reales. Se corrigieron las 3 de severidad media (contraste AA en el tema claro):
+- `ChipEstadoPeriodo`, «Diferente» del cierre anual e `IconoAlerta`: el color va solo en el ícono (y el borde); el texto queda en `text-foreground`.
+
+También se corrigieron 6 de severidad baja:
+- clic en una fila del kardex: el foco vuelve al botón del comprobante de esa fila;
+- el hover de la fila llega a las columnas fijas (`group-hover`);
+- la línea "Cerrado el…" de la tarjeta ahora es un `dt`/`dd` válido dentro del `dl`;
+- sin elegir Reemplazar/Conservar, el foco va a la primera opción;
+- la diferencia negativa del cierre anual lleva ícono y "(negativo)" para lectores de pantalla, como `Cifra`;
+- Cerrar en bloque: `placeholder="AAAA-MM"` y ayuda (Firefox y Safari no tienen `type="month"`).
+
+La séptima (el estado "desactualizado" del libro 12.1 y del asiento) depende de la API: está en los pendientes para el Sprint 10. Además, al cerrar un mes, el foco pasa al aviso del resultado o al título, porque el botón «Cerrar mes» desaparece.
+
+**Pruebas manuales con la API en modo demostración (15/11/2026)**: aprobadas por el equipo. Se revisaron el kardex contra `GET /kardex`, las alertas, el panel lateral, periodos, cerrar en bloque, `PERIODO_FUTURO`, el mes cerrado en el formulario, el cierre anual, el saldo manual y los roles ADMIN, ASISTENTE y CONSULTA. Después se hicieron dos ajustes visuales:
+- **Periodos**: las 12 tarjetas tienen el mismo ancho y alto (`w-full` y `auto-rows-fr`), en 1 columna en celular, 2 en tablet y 4 en escritorio. Antes las cerradas salían más anchas.
+- **Panel lateral del kardex**: hasta 36rem en tablet y 64rem en escritorio (`data-[side=right]:sm:max-w-xl` y `lg:max-w-5xl`). El `max-w-sm` del `Sheet` de shadcn anulaba el ancho anterior. Desde 1366 px, la serie-número entra en una sola línea y la tabla «Líneas y efecto en el kardex» (mínimo 60rem) no muestra barra horizontal.

@@ -4,6 +4,10 @@ import type { Comprobante, LineaComprobante, ResultadoEscritura } from '@/api/co
 import type { Establecimiento } from '@/api/establecimientos'
 import type { Producto } from '@/api/productos'
 import type { Tercero } from '@/api/terceros'
+import { usuarioDemo } from './falsos'
+
+/** Quien registró los comprobantes de demostración: el mismo usuario de la sesión de prueba. */
+export const ID_USUARIO_DEMO = usuarioDemo().id
 
 const producto = (id: number, codigo: string, descripcion: string): Producto => ({
   id, codigo, codigoLibro: codigo, descripcion, tipoExistencia: '01', unidadMedida: 'TNE', metodoValuacion: '1',
@@ -48,7 +52,7 @@ export function comprobanteDemo(datos: Partial<Comprobante> = {}): Comprobante {
     tercero: { id: 10, tipoDocumento: '6', numeroDocumento: '20000000010', razonSocial: 'PROVEEDOR DEMO S.A.C.' },
     moneda: 'PEN', tipoCambio: null, sustento: null, guiaRemision: null, ticketBalanza: null, placaVehiculo: null,
     observacion: null, estado: 'REGISTRADO', motivoAnulacion: null, anuladoEn: null, origenImportacion: null,
-    creadoEn: '2026-03-15T15:00:00.000Z', lineas: [lineaDemo()],
+    creadoEn: '2026-03-15T15:00:00.000Z', creadoPorId: ID_USUARIO_DEMO, creadoPor: 'Contadora (demo)', lineas: [lineaDemo()],
     ...datos,
   }
 }

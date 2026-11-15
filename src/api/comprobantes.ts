@@ -1,8 +1,8 @@
 // Comprobantes: compras, ventas y exportaciones, mermas y desmedros, ajustes (docs/CONTRATO-API.md §6.3).
 // Ver: todos · registrar compra y venta: A, C, S · merma, desmedro y ajuste: A, C · editar: A, C (S: sus compras
 // y ventas) · anular: A, C. Cantidades, costos, precios y tipo de cambio viajan siempre como string decimal.
-import { keepPreviousData, useQuery, type QueryClient } from '@tanstack/react-query'
-import { CLAVES, CLAVES_AFECTADAS_POR_ESCRITURA } from './claves'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { CLAVES } from './claves'
 import { solicitar } from './cliente'
 import type { components } from './esquema'
 import { consultaUrl } from './terceros'
@@ -90,9 +90,5 @@ export function useSimulacionSalida(datos: DatosSimularSalida | null) {
   })
 }
 
-/** Después de registrar, editar o anular: kardex, stock, dashboard, periodos, comprobantes y productos (stock). */
-export function invalidarTrasEscritura(clienteConsultas: QueryClient) {
-  for (const clave of [...CLAVES_AFECTADAS_POR_ESCRITURA, CLAVES.productos]) {
-    void clienteConsultas.invalidateQueries({ queryKey: clave })
-  }
-}
+/** Se movió a claves.ts (lo usan también kardex, periodos y saldos iniciales). */
+export { invalidarTrasEscritura } from './claves'
