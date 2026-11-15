@@ -10,7 +10,7 @@ import { DialogoCerrarMes } from './dialogo-cerrar-mes'
 import { DialogoReabrir } from './dialogo-reabrir'
 import { ListaMovimientos } from './lista-movimientos'
 import { TarjetaPeriodo } from './tarjeta-periodo'
-import { accionesPorMes } from './utilidades'
+import { accionesPorMes, nombreCampoCierre } from './utilidades'
 import { useAlertasKardex } from '@/api/kardex'
 import { usePeriodos, type ResultadoCierre } from '@/api/periodos'
 import { RAIZ_MODULO } from '@/app/paginas'
@@ -103,7 +103,7 @@ export function PaginaPeriodos() {
                 {c.diferenciasConCierreAnterior.length > 0 && (
                   <p>
                     {formatearPeriodo(c.periodo.anio, c.periodo.mes)}: {c.diferenciasConCierreAnterior.length} totales cambiaron respecto del
-                    cierre anterior ({[...new Set(c.diferenciasConCierreAnterior.map((d) => d.campo))].join(', ')}). Revisa el libro 12.1 y el asiento.
+                    cierre anterior ({[...new Set(c.diferenciasConCierreAnterior.map((d) => nombreCampoCierre(d.campo)))].join(', ')}). Revisa el libro 12.1 y el asiento.
                   </p>
                 )}
               </div>

@@ -15,7 +15,7 @@
 | S7 Maestros (WEB) | ✅ terminado | `sprint/07-maestros` | 06/11/2026 |
 | S8 Operaciones (WEB) | ✅ terminado | `sprint/08-operaciones` | 07/11/2026 |
 | S9 Kardex y periodos (WEB) | ✅ terminado | `sprint/09-kardex-periodos` | 15/11/2026 |
-| S10 Libros y reportes (WEB) | pendiente | `sprint/10-libros-reportes` | |
+| S10 Libros y reportes (WEB) | ✅ terminado | `sprint/10-libros-reportes` | 15/11/2026 |
 | S11 Contabilidad y control (WEB) | pendiente | `sprint/11-contabilidad-control` | |
 | S12 Dashboard y datos (WEB) | pendiente | `sprint/12-dashboard-datos` | |
 | S13 Calidad y entrega (WEB) | pendiente | `sprint/13-calidad-entrega` | |
@@ -446,3 +446,101 @@ La séptima (el estado "desactualizado" del libro 12.1 y del asiento) depende de
 **Pruebas manuales con la API en modo demostración (15/11/2026)**: aprobadas por el equipo. Se revisaron el kardex contra `GET /kardex`, las alertas, el panel lateral, periodos, cerrar en bloque, `PERIODO_FUTURO`, el mes cerrado en el formulario, el cierre anual, el saldo manual y los roles ADMIN, ASISTENTE y CONSULTA. Después se hicieron dos ajustes visuales:
 - **Periodos**: las 12 tarjetas tienen el mismo ancho y alto (`w-full` y `auto-rows-fr`), en 1 columna en celular, 2 en tablet y 4 en escritorio. Antes las cerradas salían más anchas.
 - **Panel lateral del kardex**: hasta 36rem en tablet y 64rem en escritorio (`data-[side=right]:sm:max-w-xl` y `lg:max-w-5xl`). El `max-w-sm` del `Sheet` de shadcn anulaba el ancho anterior. Desde 1366 px, la serie-número entra en una sola línea y la tabla «Líneas y efecto en el kardex» (mínimo 60rem) no muestra barra horizontal.
+
+### S10 — libros-reportes (15/11/2026)
+
+Rama `sprint/10-libros-reportes`. Tipos regenerados con `pnpm run api:tipos` desde el OpenAPI de la API (parte API del S10 en `main`, commit `b3b123a`): libros 12.1 y 13.1, impresiones, reportes, `POST /saldos-iniciales`, `PeriodoDto` ampliado, `SaldoInicialDto.costoUnitario` y `ErrorSaldoCeroDto`.
+
+**Qué se hizo**
+- **Pendientes del S9 que resolvió la API**:
+  - **Periodos**: cada tarjeta muestra el número de movimientos, las TN de compras y ventas y el detalle «Por producto» (desplegable), todo de `PeriodoDto`. El libro 12.1 sale de `PeriodoDto.libro121` (Pendiente / ✓ Impreso dd/mm/aaaa / ⚠ Desactualizado) con el enlace «Ver libro 12.1» al mes. `libroImpreso` (obsoleto) ya no se usa. El asiento sigue "Pendiente" (S11).
+  - **Saldos iniciales**: columna C.U. (`costoUnitario` de la API, 2 decimales) y **Nuevo saldo manual** (A, C; `POST /saldos-iniciales`):
+    - producto (solo activos sin saldo en el año), cantidad y costo total como texto, motivo obligatorio;
+    - stock negativo → `DialogoStockNegativo` y reenvío;
+    - `SALDO_INICIAL_YA_EXISTE` → aviso junto al producto y recarga de la tabla.
+  - **Cerrar mes**: `saldo-cero.ts` lee el detalle tipado de `CIERRE_CON_SALDO_CERO_CON_COSTO` (`ErrorSaldoCeroDto`). Si no viene, se mantiene el respaldo con las alertas del mes.
+- **Libro 12.1** (`/inventario/libros/12-1`, todos):
+  - filtros en la URL como el kardex (año, mes o "Todo el año", producto o "Todos los productos") y el modo del año (AGRUPADO o DETALLADO);
+  - vista previa que imita la hoja A4 horizontal (títulos, cabecera, zona del sello, saldo inicial, filas y TOTALES) con las cifras tal como llegan del JSON;
+  - **Descargar PDF** (todos), **Página de prueba de márgenes** (A, C) y **Registrar impresión** (A, C; solo meses cerrados): solo observación, la fecha de hoy informativa y la oficial `impresoEn` del servidor;
+  - estado del mes con `EstadoLibro121` e impresiones registradas (`GET /libros/12-1/impresiones`); con el mes abierto, un aviso explica que se imprime después de cerrarlo;
+  - `PERIODO_NO_CERRADO` y conflictos se manejan dentro del diálogo.
+- **Libro 13.1** (`/inventario/libros/13-1`, todos): filtros como el kardex, PDF y Excel. «Detallado» solo para A y C (D-33): para los demás ni se muestra ni se envía.
+- **Reportes** (`/inventario/reportes/toneladas`, `costo-ventas`, `resumen-anual`, `margen`; todos), año en la URL y **Descargar Excel**:
+  - Toneladas y Costo de ventas: un bloque por producto más "EN TONELADAS" o "RESUMEN", con la fila TOTAL y las columnas COSTO DE VENTAS, MERMAS y TOTAL SALIDAS VALORIZADAS tal como las nombra la API;
+  - Resumen anual: conceptos × productos (TN y S/) con la columna TOTAL;
+  - Margen: ventas TN y S/, costo de ventas, margen, % ("—" si es null) y ventas sin precio aparte, más un gráfico de barras (ventas y costo de ventas por mes, un solo eje, leyenda y tooltip con las cifras exactas).
+- **Excel formato contadora** (`/inventario/reportes/excel-contadora`, A y C): selector de año y descarga.
+- **Kardex**: botones «PDF 13.1» y «Excel» con los mismos filtros del kardex (Detallado solo si el rol puede).
+- **Descargas**: `solicitarArchivo` en `api/cliente.ts` (mismo token, refresh y "Despertando el servidor…", `Accept: */*`, 120 s), `api/descargas.ts`, `lib/descargas.ts` (nombre de `Content-Disposition` con `filename*` y `filename`, saneado; guardado con un enlace temporal) y el común `BotonDescarga` ("Generando…", `aria-busy`; mensajes de 403, 409 `PERIODO_NO_CERRADO` y 429).
+- Permisos nuevos en `lib/roles.ts`: `libros:registrar-impresion`, `libros:prueba-margenes`, `libros:13-1-detallado` y `reportes:excel-contadora` (A, C). Mensaje `SALDO_INICIAL_YA_EXISTE` en `lib/errores.ts`; `formatearFechaInstante` en `lib/formato.ts`.
+- Invalidación: `invalidarTrasEscritura` incluye ahora el libro 12.1 (puede quedar desactualizado) y los reportes. Registrar impresión invalida periodos y libro 12.1.
+- Documentación: `CONTRATO-API.md` §6 (tabla general), §6.4 y §6.5 (nuevo); `UI-UX.md` §4, §5.9–5.12 y §6.
+
+**Decisiones**
+- **Fecha de impresión**: el diálogo pide solo la observación y muestra la fecha de hoy como informativa. La oficial es `impresoEn` del servidor, porque `RegistrarImpresionDto` no recibe fecha. Aprobado.
+- **Prueba de márgenes**: visible solo para A y C. La API no lo restringe en el OpenAPI: queda como pendiente para la API. Aprobado.
+- **Resumen anual** por producto con su TOTAL (la API no lo da por mes); **13.1 sin tabla en pantalla**; **vista previa del 12.1 con las cifras tal como llegan** (sin big.js, para que coincidan con el PDF). Aprobado.
+- **Gráfico de Margen sin dependencias nuevas**: recharts 3.10.1 ya estaba en el stack. Se carga solo al abrir Margen (paquete aparte de ~372 kB). Los importes se convierten a número con big.js **solo para dibujar** las barras; la tabla "TOTAL DE PRODUCTOS" es la vista accesible.
+- **Colores del gráfico**: `--chart-2` y `--chart-3` se ajustaron (claro `#0891b2`; oscuro `#0b9fbd` y `#c97a44`). Los anteriores no pasaban el validador de paletas de la guía de gráficos (croma en claro, luminosidad en oscuro). Ningún otro componente usaba esos tokens.
+- **Filtros de los libros**: el mismo formato de URL que el kardex (`leerFiltrosKardex`), así el 13.1 enlaza al kardex con los mismos filtros.
+- **`/reportes/:reporte`**: una ruta por reporte, la del menú; cualquier otra cae en "Página no encontrada".
+
+**Pendientes para la API (Sprint 11)**
+- Verificar que `GET /libros/12-1/prueba-margenes` esté limitado a ADMIN y CONTADOR y documentarlo en el OpenAPI (con su e2e si falta).
+- Documentar el 429 en el OpenAPI de las descargas de `/libros` y `/reportes`.
+- Documentar el 409 `PERIODO_NO_CERRADO` en la descarga del 12.1 si la API lo devuelve.
+
+**Pendientes (web)**
+- Criterios de aceptación contra la API local en modo demostración (descargas reales, registrar impresión y tarjetas de Periodos): los prueba el equipo (ver "Cómo probar").
+- El paquete inicial (`index-*.js`) sigue en ~504 kB, con la advertencia de 500 kB: revisar la división en el S13.
+- Selector del periodo de trabajo en la barra superior (§3).
+- Capturas `S10-*.png`, solo con la base de demostración y registradas en `docs/archivos-revisados.txt`.
+
+**Cómo probar**
+```
+pnpm run lint ; pnpm test ; pnpm run build ; pnpm run revisar:datos
+pnpm run dev  →  http://localhost:5173/inventario/libros/12-1   (API con pnpm run db:demo y pnpm run start:demo)
+```
+1. Como CONTADOR (`contadora.demo@syp.invalid`), en **Periodos** revisa en cada tarjeta los movimientos, las TN de compras y ventas y «Por producto». Sigue «Ver libro 12.1» de un mes cerrado.
+2. En **Libro 12.1** elige un mes cerrado: revisa la vista previa y el modo del año, pulsa **Descargar PDF** y **Página de prueba de márgenes** (se descargan con el nombre que manda la API). **Registrar impresión** con una observación: el estado pasa a "Impreso dd/mm/aaaa", también en Periodos. Elige un mes abierto: aparece el aviso y no hay «Registrar impresión».
+3. Registra o edita un comprobante de ese mes después de reabrirlo y volver a cerrarlo: el libro pasa a "⚠ Impresión desactualizada: vuelve a imprimir".
+4. En **Libro 13.1** descarga PDF y Excel, con y sin «Detallado». En **Kardex** usa «PDF 13.1» y «Excel».
+5. Abre **Toneladas**, **Costo de ventas**, **Resumen anual** y **Margen** (con el gráfico) y descarga el Excel de cada uno. En **Excel contadora** descarga el del año.
+6. En **Saldos iniciales** revisa la columna C.U. y crea un **Nuevo saldo manual** para un producto sin saldo en el año.
+7. Como `asistente.demo@syp.invalid` o `consulta.demo@syp.invalid`: no aparecen «Registrar impresión», la prueba de márgenes, «Detallado» ni Excel contadora (el menú tampoco lo muestra).
+8. Pulsa varias descargas seguidas hasta pasar el límite por minuto: "Llegaste al límite de descargas por minuto. Espera un momento y vuelve a intentarlo."
+
+**Números**: 297 pruebas en 34 archivos (+42 y +5 archivos):
+- nuevos: `lib/descargas` 7, `BotonDescarga` 6, `pagina-libro-12-1` 10, `pagina-libro-13-1` 3 y `pagina-reporte` 8 (incluye Excel contadora);
+- ampliados: `pagina-periodos` +1 (15), `pagina-saldos-iniciales` +3 (7), `pagina-kardex` +1 (14), `cliente` +2 (24) y `roles` +1 (10).
+
+**Revisión `revisor-ux`**: APROBADO CON OBSERVACIONES, sin hallazgos altos ni datos reales. Se corrigieron las 5 de severidad media:
+- WCAG 2.5.3 (la etiqueta visible está en el nombre accesible): los botones de descarga del 13.1, de los reportes, del Excel contadora y del kardex empiezan su nombre accesible con el texto visible ("Descargar PDF del libro 13.1 de …", "Descargar Excel de Toneladas 2026", "PDF 13.1 de FIERRO, …").
+- `BotonDescarga`: mientras genera, el nombre accesible también dice "Generando… …" y el botón se ve bloqueado (`aria-disabled:opacity-60` y cursor de espera).
+- Gráfico de Margen: el texto de la leyenda va en color de texto (solo el ícono lleva el color de la serie) y `accessibilityLayer={false}`, para que el svg oculto no reciba foco.
+- Libro 12.1: si falla la consulta de periodos o de impresiones, un aviso "No pudimos leer el estado del mes" con «Reintentar» (antes «Registrar impresión» desaparecía en silencio).
+
+También se corrigieron 6 de severidad baja:
+- `docs/UI-UX.md` §2 con los valores nuevos de `--chart-2` y `--chart-3` (y la nota de que `--chart-2` claro no sirve para texto);
+- "Ver libro 12.1 de {mes}" como nombre accesible del enlace de la tarjeta;
+- registrar impresión invalida también el dashboard (S12);
+- «Nuevo saldo manual» se deshabilita, con una ayuda visible, si todos los productos ya tienen saldo; tras `SALDO_INICIAL_YA_EXISTE` se limpia el producto para no reenviarlo;
+- vista previa del 12.1 a 12 px (`text-xs`);
+- "—" del MARGEN % se lee "sin ventas con precio".
+
+Quedan dos de severidad baja, opcionales:
+- distinguir las dos series del gráfico con algo más que el tono (cian y naranja ya son distinguibles para daltónicos, y la tabla y el tooltip lo compensan);
+- llevar los costos de `src/pruebas/libros-demo.ts` a montos más redondos (ya son ficticios y pasan `revisar:datos`).
+
+**Correcciones de la prueba manual (15/11/2026)**
+- **Margen sin ventas con valor de venta**: si ningún mes del año tiene "ventas S/" mayores que 0 (o el año no tiene meses), en lugar del gráfico vacío aparece el aviso "En {año} no hay ventas con valor de venta registrado, por eso no se puede calcular el margen. Ventas sin precio: {TN} TN (costo S/ {monto})." Las cifras salen del total del año que manda la API (`total.total.sinPrecio`; `0.0000 TN` y `S/ 0.00` si no hay meses). La tabla por producto se mantiene.
+  - `sinVentasConPrecio(meses)` vive en `reportes/margen.ts` (sin recharts). La decisión entre aviso y gráfico la toma `GraficoMargen`: así recharts sigue cargándose solo al abrir Margen y el lint no advierte `only-export-components`. big.js solo compara con cero.
+- **Avisos al volver a cerrar un mes**: los totales que cambiaron se nombran en español (saldo inicial TN/S/, compras TN/S/, otras entradas, ventas TN, costo de ventas S/, mermas, desmedros, otras salidas, saldo final TN/S/). Se traduce el campo estructurado `diferenciasConCierreAnterior[].campo` con `nombreCampoCierre` (`periodos/utilidades.ts`); no se analiza texto. Un campo desconocido se muestra tal cual.
+- `esquema.d.ts` verificado idéntico a lo que genera `pnpm run api:tipos` al cerrar el sprint.
+
+**Números al cierre**: 303 pruebas en 35 archivos (+6 y +1 archivo: `grafico-margen` 4 nuevo; `pagina-periodos` +2). Lint sin errores (6 advertencias previas, de shadcn y del kardex), build correcto, `revisar:datos` SIN DATOS REALES y Hooks OK.
+
+**Cómo probar las correcciones**
+1. En **Margen** (`/inventario/reportes/margen?anio=<año>`) elige un año sin ventas con precio: aparece el aviso con las TN y el costo de las ventas sin precio, sin gráfico, y la tabla sigue. Con un año con ventas con precio, el gráfico se ve como antes.
+2. En **Periodos**, como `contadora.demo@syp.invalid`, reabre el último mes cerrado, registra un cambio y vuelve a cerrarlo: el aviso dice, por ejemplo, "(compras TN, compras S/, saldo final TN, saldo final S/)".

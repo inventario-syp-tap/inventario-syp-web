@@ -1,12 +1,16 @@
-// Tarjeta de un mes (docs/UI-UX.md §5.9): estado con ícono y texto, movimientos, libro 12.1 y asiento tal como los
-// entrega la API (sin dato → "Pendiente"). Las TN de compras y ventas no vienen en PeriodoDto: pendiente para la API.
+// Tarjeta de un mes (docs/UI-UX.md §5.9): estado con ícono y texto, número de movimientos, TN de compras y ventas
+// (con el detalle por producto), libro 12.1 (Pendiente / Impreso / Desactualizado, con enlace al libro del mes) y
+// asiento (Pendiente hasta el S11). Todo tal como lo entrega PeriodoDto: la web no suma nada.
 import type { ReactNode } from 'react'
-import { BookOpenIcon, CircleDashedIcon, LandmarkIcon, LockOpenIcon, LockIcon } from 'lucide-react'
+import { Link } from 'react-router'
+import { ArrowDownToLineIcon, ArrowUpFromLineIcon, BookOpenIcon, CircleDashedIcon, LandmarkIcon, ListIcon, LockOpenIcon, LockIcon } from 'lucide-react'
 import type { Periodo } from '@/api/periodos'
+import { RAIZ_MODULO } from '@/app/paginas'
 import { ChipEstadoPeriodo } from '@/componentes/comunes/chip-estado-periodo'
+import { EstadoLibro121 } from '@/componentes/comunes/estado-libro-121'
 import { Button } from '@/componentes/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componentes/ui/card'
-import { formatearFechaHora, nombreMes } from '@/lib/formato'
+import { formatearEntero, formatearFechaHora, formatearToneladas, nombreMes } from '@/lib/formato'
 
 type Props = {
   periodo: Periodo
@@ -20,17 +24,12 @@ function Dato({ icono, termino, children }: { icono: ReactNode; termino: string;
   return (
     <div>
       <dt className="sr-only">{termino}</dt>
-      <dd className="flex items-start gap-2 text-sm">{icono}<span>{children}</span></dd>
+      <dd className="flex items-start gap-2 text-sm">{icono}<span className="min-w-0">{children}</span></dd>
     </div>
   )
 }
 
-const pendiente = (
-  <span className="inline-flex items-center gap-1 text-muted-foreground">
-    <CircleDashedIcon aria-hidden="true" className="size-3.5" />
-    Pendiente
-  </span>
-)
+const textoMovimientos = (n: number) => (n === 1 ? '1 movimiento' : `${formatearEntero(n)} movimientos`)
 
 export function TarjetaPeriodo({ periodo: p, puedeCerrar, puedeReabrir, alCerrar, alReabrir }: Props) {
   const nombre = `${nombreMes(p.mes)} ${p.anio}`
@@ -43,17 +42,51 @@ export function TarjetaPeriodo({ periodo: p, puedeCerrar, puedeReabrir, alCerrar
       </CardHeader>
       <CardContent>
         <dl className="flex flex-col gap-1.5">
-          <Dato icono={<CircleDashedIcon aria-hidden="true" className={icono} />} termino="Movimientos">
-            {p.tieneMovimientos ? 'Con movimientos' : <span className="text-muted-foreground">Sin movimientos</span>}
+          <Dato icono={<ListIcon aria-hidden="true" className={icono} />} termino="Movimientos">
+            {p.movimientos > 0 ? textoMovimientos(p.movimientos) : <span className="text-muted-foreground">Sin movimientos</span>}
           </Dato>
+          <Dato icono={<ArrowDownToLineIcon aria-hidden="true" className={icono} />} termino="Compras">
+            Compras: <span className="tabular-nums">{formatearToneladas(p.comprasTn)}</span> TN
+          </Dato>
+          <Dato icono={<ArrowUpFromLineIcon aria-hidden="true" className={icono} />} termino="Ventas">
+            Ventas: <span className="tabular-nums">{formatearToneladas(p.ventasTn)}</span> TN
+          </Dato>
+          {p.porProducto.length > 0 && (
+            <div>
+              <dt className="sr-only">Detalle por producto</dt>
+              <dd className="text-xs">
+                <details>
+                  <summary className="w-fit cursor-pointer rounded-sm text-muted-foreground underline-offset-2 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50">
+                    Por producto
+                  </summary>
+                  <ul className="mt-1 flex flex-col gap-0.5">
+                    {p.porProducto.map((d) => (
+                      <li key={d.productoId}>
+                        <span className="font-medium">{d.productoCodigo}</span>: {textoMovimientos(d.movimientos)} · compras{' '}
+                        <span className="tabular-nums">{formatearToneladas(d.comprasTn)}</span> TN · ventas{' '}
+                        <span className="tabular-nums">{formatearToneladas(d.ventasTn)}</span> TN
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              </dd>
+            </div>
+          )}
           <Dato icono={<BookOpenIcon aria-hidden="true" className={icono} />} termino="Libro 12.1">
-            Libro 12.1: {p.libroImpreso ? `impreso el ${formatearFechaHora(p.libroImpreso.impresoEn).slice(0, 10)}` : pendiente}
+            <span className="inline-flex flex-wrap items-center gap-x-1">
+              Libro 12.1: <EstadoLibro121 estado={p.libro121.estado} impresoEn={p.libro121.impresoEn} corto />
+            </span>
+            <Link className="block w-fit text-xs underline underline-offset-2" aria-label={`Ver libro 12.1 de ${nombre}`}
+              to={`${RAIZ_MODULO}/libros/12-1?anio=${p.anio}&mes=${p.mes}`}>
+              Ver libro 12.1
+            </Link>
           </Dato>
           <Dato icono={<LandmarkIcon aria-hidden="true" className={icono} />} termino="Asiento">
             Asiento:{' '}
-            {p.asientosExportados.length > 0
-              ? `exportado (${p.asientosExportados.map((a) => a.numeroAsiento).join(', ')})`
-              : pendiente}
+            <span className="inline-flex items-center gap-1 text-muted-foreground">
+              <CircleDashedIcon aria-hidden="true" className="size-3.5" />
+              Pendiente
+            </span>
           </Dato>
           {p.estado === 'CERRADO' && p.cerradoEn && (
             <div>

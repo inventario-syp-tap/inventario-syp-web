@@ -1,12 +1,12 @@
 // Kardex (docs/UI-UX.md §5.8), la pantalla más importante. Filtros en la URL (producto, año, mes o "Todo el año",
 // Detallado); la tabla muestra los valores de GET /kardex tal cual, formateados. Clic en una fila → panel lateral con
 // el comprobante. Reordenar ↑/↓ (A, C) solo dentro de la misma fecha, con confirmación. Recalcular (solo A).
-// Exportar a Excel y el PDF del 13.1 llegan en el Sprint 10.
+// «PDF 13.1» y «Excel» descargan el libro 13.1 con los mismos filtros (Detallado solo si el rol puede pedirlo, D-33).
 import { useEffect, useId, useRef, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { RefreshCwIcon } from 'lucide-react'
+import { FileSpreadsheetIcon, FileTextIcon, RefreshCwIcon } from 'lucide-react'
 import { documentoFila, escribirFiltrosKardex, leerFiltrosKardex, type FiltrosKardexUrl } from './filtros-url'
 import { ResumenAlertas } from './resumen-alertas'
 import { TablaKardex, type Direccion } from './tabla-kardex'
@@ -15,10 +15,12 @@ import { useComprobante, type ResultadoEscritura } from '@/api/comprobantes'
 import {
   moverMovimiento, recalcularKardex, useAlertasKardex, useKardex, type DatosMover, type FilaKardex,
 } from '@/api/kardex'
+import { rutaLibro131 } from '@/api/libros'
 import { textoProducto, useProductos } from '@/api/productos'
 import { RAIZ_MODULO } from '@/app/paginas'
 import { useTituloPagina } from '@/app/titulo-pagina'
 import { AvisoConflicto } from '@/componentes/comunes/aviso-conflicto'
+import { BotonDescarga } from '@/componentes/comunes/boton-descarga'
 import { CampoCasilla } from '@/componentes/comunes/campo-casilla'
 import { CampoSelect } from '@/componentes/comunes/campo-select'
 import { DialogoConfirmacion } from '@/componentes/comunes/dialogo-confirmacion'
@@ -49,6 +51,7 @@ export function PaginaKardex() {
   const productos = useProductos()
   const puedeReordenar = usePuede('kardex:reordenar')
   const puedeRecalcular = usePuede('kardex:recalcular')
+  const puedeDetallado131 = usePuede('libros:13-1-detallado')
 
   const filtros = leerFiltrosKardex(parametros)
   const productoId = filtros.productoId ?? productos.data?.find((p) => p.activo)?.id ?? productos.data?.[0]?.id ?? null
@@ -121,6 +124,10 @@ export function PaginaKardex() {
 
   const periodoTexto = filtros.mes === null ? `todo ${filtros.anio}` : formatearPeriodo(filtros.anio, filtros.mes)
   const nombreProducto = producto ? textoProducto(producto) : 'el producto'
+  const filtros131 = {
+    anio: filtros.anio, mes: filtros.mes ?? undefined, productoId: productoId ?? undefined, detallado: puedeDetallado131 && filtros.detallado,
+  }
+  const archivo131 = `libro-13-1-${producto?.codigo ?? 'producto'}-${filtros.anio}${filtros.mes ? `-${String(filtros.mes).padStart(2, '0')}` : ''}`
   const sinProductos = productos.isSuccess && productos.data.length === 0
   const sinMovimientos = !!kardex.data && kardex.data.meses.every((m) => m.filas.length === 0)
 
@@ -129,12 +136,24 @@ export function PaginaKardex() {
       <EncabezadoPagina
         titulo="Kardex"
         descripcion="Valorizado al costo promedio ponderado. Los valores los calcula el sistema."
-        acciones={puedeRecalcular && producto && (
-          <Button ref={botonRecalcular} type="button" variant="outline" disabled={recalcular.isPending}
-            onClick={() => setConfirmarRecalculo(true)}>
-            <RefreshCwIcon aria-hidden="true" className={recalcular.isPending ? 'animate-spin' : undefined} />
-            {recalcular.isPending ? 'Recalculando…' : 'Recalcular'}
-          </Button>
+        acciones={producto && (
+          <>
+            <BotonDescarga ruta={rutaLibro131(filtros131, 'pdf')} nombrePorDefecto={`${archivo131}.pdf`}
+              icono={<FileTextIcon aria-hidden="true" />} aria-label={`PDF 13.1 de ${producto.codigo}, ${periodoTexto}`}>
+              PDF 13.1
+            </BotonDescarga>
+            <BotonDescarga ruta={rutaLibro131(filtros131, 'xlsx')} nombrePorDefecto={`${archivo131}.xlsx`}
+              icono={<FileSpreadsheetIcon aria-hidden="true" />} aria-label={`Excel del kardex de ${producto.codigo}, ${periodoTexto}`}>
+              Excel
+            </BotonDescarga>
+            {puedeRecalcular && (
+              <Button ref={botonRecalcular} type="button" variant="outline" disabled={recalcular.isPending}
+                onClick={() => setConfirmarRecalculo(true)}>
+                <RefreshCwIcon aria-hidden="true" className={recalcular.isPending ? 'animate-spin' : undefined} />
+                {recalcular.isPending ? 'Recalculando…' : 'Recalcular'}
+              </Button>
+            )}
+          </>
         )}
       />
 

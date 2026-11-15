@@ -220,7 +220,7 @@ export interface paths {
         put?: never;
         /**
          * Carga el histórico incluido en el servidor en una base vacía (una sola vez)
-         * @description Si esos años ya tienen saldos o movimientos, o el mismo lote ya se aplicó → 409 HISTORICO_YA_CARGADO. En modo demostración → 409 NO_DISPONIBLE_EN_DEMO.
+         * @description Si los años de la carga tienen periodos cerrados → 409 PERIODO_CERRADO. Si esos años ya tienen saldos o movimientos, o el mismo lote ya se aplicó → 409 HISTORICO_YA_CARGADO. En modo demostración → 409 NO_DISPONIBLE_EN_DEMO.
          */
         post: operations["ImportacionController_cargarHistorico"];
         delete?: never;
@@ -294,6 +294,84 @@ export interface paths {
         put?: never;
         /** Recalcula el año (idempotente). 409 PERIODO_CERRADO si cambiaría un mes cerrado */
         post: operations["KardexController_recalcular"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/libros/12-1": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Libro 12.1 (unidades físicas) con el modo del año: JSON igual a la hoja o PDF A4 horizontal sin folio para la hoja legalizada
+         * @description Las cifras vienen redondeadas como se imprimen (entradas/salidas 3 decimales, saldos y totales 2; D-24). Un bloque por mes y producto.
+         */
+        get: operations["LibrosController_libro121Consultar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/libros/12-1/prueba-margenes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** PDF de una página con el área imprimible y la zona del sello para ajustar los márgenes (PC-06) */
+        get: operations["LibrosController_pruebaMargenes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/libros/12-1/impresiones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Impresiones registradas del año y estado del libro de cada mes (PENDIENTE, IMPRESO, DESACTUALIZADO) */
+        get: operations["LibrosController_impresiones"];
+        put?: never;
+        /**
+         * Registra que el libro 12.1 del mes se imprimió en las hojas legalizadas (guarda el hash del contenido impreso; D-08)
+         * @description Solo meses CERRADOS. Si después cambia el contenido impreso, el mes queda DESACTUALIZADO hasta registrar una nueva impresión.
+         */
+        post: operations["LibrosController_registrarImpresion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/libros/13-1": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Libro 13.1 (valorizado, reporte interno D-14): JSON exacto, PDF A4 horizontal o Excel; detallado=true agrega RUC, razón social, descripción y subtotales
+         * @description Todos los roles ven el 13.1 sin detallar; detallado=true solo ADMIN y CONTADOR (D-33, Ley 29733): ASISTENTE y CONSULTA → 403 SIN_PERMISO.
+         */
+        get: operations["LibrosController_libro131Consultar"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -776,7 +854,8 @@ export interface paths {
         /** Saldos iniciales del año con su origen */
         get: operations["SaldosInicialesController_listar"];
         put?: never;
-        post?: never;
+        /** Crea un SI MANUAL con motivo (auditado) para un producto y año que no lo tienen; recalcula el año con las mismas guardas que el PUT */
+        post: operations["SaldosInicialesController_crear"];
         delete?: never;
         options?: never;
         head?: never;
@@ -793,6 +872,91 @@ export interface paths {
         get?: never;
         /** SI MANUAL con motivo (auditado): recalcula el año. 409 PERIODO_CERRADO si cambiaría un mes cerrado */
         put: operations["SaldosInicialesController_editar"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/reportes/toneladas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Hoja TN: por producto y mes SI, compras, ventas, mermas y SF en TN, más el bloque EN TONELADAS */
+        get: operations["ReportesController_toneladas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/reportes/costo-ventas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Hoja COSTO DE VENTAS: costo de ventas (01 + 17), mermas y total de salidas valorizadas, cada uno con su nombre */
+        get: operations["ReportesController_costoVentas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/reportes/resumen-anual": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inventario inicial, compras, inventario final, costo de ventas y mermas del año por producto */
+        get: operations["ReportesController_resumenAnual"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/reportes/margen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Margen bruto (D-11) por producto y mes: ventas en S/ − costo de ventas; las ventas sin valor de venta van aparte */
+        get: operations["ReportesController_margen"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/reportes/excel-contadora": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Un .xlsx con las hojas TN, COSTO DE VENTAS, CH FIERRO ANUAL, INOX -ANUAL, COBRE ANUAL y ASIENTO como los de la contadora (valores, no fórmulas) */
+        get: operations["ReportesController_excelContadora"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -1040,6 +1204,72 @@ export interface components {
             tiposOperacion: components["schemas"]["TipoOperacionDto"][];
             /** @description Tabla 14 */
             metodosValuacion: components["schemas"]["ItemCatalogoDto"][];
+        };
+        ErrorNegocioDto: {
+            /** @example PERIODO_CERRADO */
+            codigo: string;
+            /** @example El periodo 2026-01 estÃ¡ cerrado: â€¦ */
+            mensaje: string;
+            /**
+             * @description Datos del error segÃºn el cÃ³digo (ver docs/02 Â§17)
+             * @example {
+             *       "periodos": [
+             *         "2026-01"
+             *       ]
+             *     }
+             */
+            detalle: Record<string, never> | null;
+        };
+        MovimientoNegativoDto: {
+            /** @example 0b6f2c1e-9a8d-4c7b-b6a5-1234567890ab */
+            movimientoId: string;
+            /** @example 1 */
+            productoId: number;
+            /** @example 2026-01-20 */
+            fecha: string;
+            /** @example -2.5000 */
+            saldoResultante: string;
+        };
+        StockNegativoDetalleDto: {
+            /** @example 1 */
+            productoId: number;
+            /** @example 1 */
+            establecimientoId: number;
+            /** @example 2026 */
+            anio: number;
+            /**
+             * @description Fecha del primer movimiento que queda negativo
+             * @example 2026-01-20
+             */
+            fecha: string;
+            /** @example -2.5000 */
+            saldoResultante: string;
+            /**
+             * @description Saldo justo antes de ese movimiento
+             * @example 7.5000
+             */
+            disponibleAntes: string;
+            movimientos: components["schemas"]["MovimientoNegativoDto"][];
+        };
+        ErrorStockNegativoDto: {
+            /**
+             * @example STOCK_NEGATIVO_REQUIERE_CONFIRMACION
+             * @enum {string}
+             */
+            codigo: "STOCK_NEGATIVO_REQUIERE_CONFIRMACION" | "STOCK_INSUFICIENTE";
+            /** @example La operaciÃ³n deja saldo negativo. ConfÃ­rmala para registrarla con la alerta STOCK_NEGATIVO. */
+            mensaje: string;
+            detalle: components["schemas"]["StockNegativoDetalleDto"];
+        };
+        DetallePeriodosDto: {
+            /**
+             * @example [
+             *       "2026-01"
+             *     ]
+             */
+            periodos: string[];
+            /** @example 1 */
+            productoId?: number;
         };
         ResumenImportacionDto: {
             /** @example 12 */
@@ -1319,72 +1549,6 @@ export interface components {
             totales: Record<string, never>;
             alertas: components["schemas"]["AlertaDto"][];
         };
-        ErrorNegocioDto: {
-            /** @example PERIODO_CERRADO */
-            codigo: string;
-            /** @example El periodo 2026-01 está cerrado: … */
-            mensaje: string;
-            /**
-             * @description Datos del error según el código (ver docs/02 §17)
-             * @example {
-             *       "periodos": [
-             *         "2026-01"
-             *       ]
-             *     }
-             */
-            detalle: Record<string, never> | null;
-        };
-        MovimientoNegativoDto: {
-            /** @example 0b6f2c1e-9a8d-4c7b-b6a5-1234567890ab */
-            movimientoId: string;
-            /** @example 1 */
-            productoId: number;
-            /** @example 2026-01-20 */
-            fecha: string;
-            /** @example -2.5000 */
-            saldoResultante: string;
-        };
-        StockNegativoDetalleDto: {
-            /** @example 1 */
-            productoId: number;
-            /** @example 1 */
-            establecimientoId: number;
-            /** @example 2026 */
-            anio: number;
-            /**
-             * @description Fecha del primer movimiento que queda negativo
-             * @example 2026-01-20
-             */
-            fecha: string;
-            /** @example -2.5000 */
-            saldoResultante: string;
-            /**
-             * @description Saldo justo antes de ese movimiento
-             * @example 7.5000
-             */
-            disponibleAntes: string;
-            movimientos: components["schemas"]["MovimientoNegativoDto"][];
-        };
-        ErrorStockNegativoDto: {
-            /**
-             * @example STOCK_NEGATIVO_REQUIERE_CONFIRMACION
-             * @enum {string}
-             */
-            codigo: "STOCK_NEGATIVO_REQUIERE_CONFIRMACION" | "STOCK_INSUFICIENTE";
-            /** @example La operación deja saldo negativo. Confírmala para registrarla con la alerta STOCK_NEGATIVO. */
-            mensaje: string;
-            detalle: components["schemas"]["StockNegativoDetalleDto"];
-        };
-        DetallePeriodosDto: {
-            /**
-             * @example [
-             *       "2026-01"
-             *     ]
-             */
-            periodos: string[];
-            /** @example 1 */
-            productoId?: number;
-        };
         RecalcularKardexDto: {
             /** @example 2026 */
             anio: number;
@@ -1414,6 +1578,269 @@ export interface components {
              * @example []
              */
             saldosDesactualizados: string[];
+        };
+        CabeceraLibro121Dto: {
+            /** @example ENERO--2026 */
+            periodo: string;
+            /** @example 20000000001 */
+            ruc: string;
+            /** @example EMPRESA DEMO S.A.C. */
+            razonSocial: string;
+            /** @example 0001-LOCAL DEMO */
+            establecimiento: string;
+            /** @example CH D-FIERRO */
+            codigoExistencia: string;
+            /** @example 01-MERCADERIA */
+            tipoExistencia: string;
+            /** @example CHATARRA DE FIERRO DEMO */
+            descripcion: string;
+            /** @example TNE */
+            unidadMedida: string;
+        };
+        SaldoInicialLibro121Dto: {
+            /** @example 12.500 */
+            entrada: string;
+            /** @example 12.50 */
+            saldo: string;
+        };
+        FilaLibro121Dto: {
+            /**
+             * @description dd/mm/aaaa
+             * @example 05/01/2026
+             */
+            fecha: string;
+            /** @example 01 */
+            tipoT10: string;
+            /** @example F001 */
+            serie: string;
+            /**
+             * @description 7 dígitos
+             * @example 0000123
+             */
+            numero: string;
+            /** @example 02 */
+            tipoOperacionT12: string;
+            /**
+             * @description 3 decimales; '' si es salida
+             * @example 12.500
+             */
+            entrada: string;
+            /**
+             * @description 3 decimales; '' si es entrada
+             * @example
+             */
+            salida: string;
+            /**
+             * @description 2 decimales
+             * @example 25.00
+             */
+            saldo: string;
+        };
+        TotalesLibro121Dto: {
+            /**
+             * @description Saldo inicial + entradas del mes
+             * @example 25.00
+             */
+            entradas: string;
+            /**
+             * @description Salidas del mes
+             * @example 0.00
+             */
+            salidas: string;
+        };
+        BloqueLibro121Dto: {
+            /** @example 2026 */
+            anio: number;
+            /** @example 1 */
+            mes: number;
+            /** @example D-FIERRO */
+            productoCodigo: string;
+            cabecera: components["schemas"]["CabeceraLibro121Dto"];
+            saldoInicial: components["schemas"]["SaldoInicialLibro121Dto"];
+            filas: components["schemas"]["FilaLibro121Dto"][];
+            /** @example 25.00 */
+            saldoFinal: string;
+            totales: components["schemas"]["TotalesLibro121Dto"];
+        };
+        Libro121Dto: {
+            /** @example 2026 */
+            anio: number;
+            /** @example 1 */
+            mes: number | null;
+            /**
+             * @example AGRUPADO
+             * @enum {string}
+             */
+            modo: "AGRUPADO" | "DETALLADO";
+            /** @description Un bloque por mes y producto (cada uno en página nueva) */
+            bloques: components["schemas"]["BloqueLibro121Dto"][];
+        };
+        ImpresionLibro121Dto: {
+            /** @example 3 */
+            id: number;
+            /** @example 2026 */
+            anio: number;
+            /** @example 1 */
+            mes: number;
+            /** @example 2026-01 */
+            periodo: string;
+            /** @example Impreso en hojas legalizadas 0001 a 0003 */
+            observacion: string | null;
+            /** @example 2026-02-10T15:04:05.000Z */
+            impresoEn: string;
+            /** @example Contadora Demo */
+            impresoPor: string | null;
+            /**
+             * @description false = el contenido del mes cambió después de esta impresión (hay que reimprimir)
+             * @example true
+             */
+            vigente: boolean;
+            /**
+             * @description true si el mes ya tenía una impresión anterior
+             * @example false
+             */
+            reimpresion: boolean;
+        };
+        EstadoLibroDto: {
+            /** @example 1 */
+            mes: number;
+            /** @example 2026-01 */
+            periodo: string;
+            /**
+             * @example IMPRESO
+             * @enum {string}
+             */
+            estado: "PENDIENTE" | "IMPRESO" | "DESACTUALIZADO";
+            /**
+             * @description Fecha de la última impresión registrada
+             * @example 2026-02-10T15:04:05.000Z
+             */
+            impresoEn: string | null;
+        };
+        ImpresionesLibro121Dto: {
+            impresiones: components["schemas"]["ImpresionLibro121Dto"][];
+            meses: components["schemas"]["EstadoLibroDto"][];
+        };
+        RegistrarImpresionDto: {
+            /** @example 2026 */
+            anio: number;
+            /** @example 1 */
+            mes: number;
+            /** @example Impreso en hojas legalizadas 0001 a 0003 */
+            observacion?: string;
+        };
+        CabeceraLibro131Dto: {
+            /** @example 20000000001 */
+            ruc: string;
+            /** @example EMPRESA DEMO S.A.C. */
+            razonSocial: string;
+            /** @example 0001-LOCAL DEMO */
+            establecimiento: string;
+            /** @example DEMO 001 */
+            codigoExistencia: string;
+            /** @example 01-MERCADERIA */
+            tipoExistencia: string;
+            /** @example CHATARRA DE FIERRO */
+            descripcion: string;
+            /** @example TNE */
+            unidadMedida: string;
+            /**
+             * @description Tabla 14
+             * @example 1-PROMEDIO PONDERADO
+             */
+            metodoValuacion: string;
+        };
+        Valor131Dto: {
+            /** @example 12.5000 */
+            cantidad: string;
+            /**
+             * @description Exacto
+             * @example 1080
+             */
+            costoUnitario: string;
+            /** @example 13500 */
+            costoTotal: string;
+        };
+        TerceroLibro131Dto: {
+            /**
+             * @description Tabla 2
+             * @example 6
+             */
+            tipoDocumento: string;
+            /** @example 20000000001 */
+            numeroDocumento: string;
+            /** @example PROVEEDOR DEMO S.A.C. */
+            razonSocial: string;
+        };
+        LineaLibro131Dto: {
+            /** @example 2026-01-05 */
+            fecha: string;
+            /** @example 01 */
+            tipoT10: string;
+            /** @example F001 */
+            serie: string;
+            /** @example 123 */
+            numero: string;
+            /** @example 02 */
+            tipoOperacionT12: string;
+            /**
+             * @example ENTRADA
+             * @enum {string}
+             */
+            tipoMovimiento: "ENTRADA" | "SALIDA";
+            /** @description Solo con detallado=true */
+            tercero: components["schemas"]["TerceroLibro131Dto"] | null;
+            /**
+             * @description Solo con detallado=true
+             * @example CHATARRA DE PRUEBA
+             */
+            descripcion: string | null;
+            entrada: components["schemas"]["Valor131Dto"] | null;
+            salida: components["schemas"]["Valor131Dto"] | null;
+            saldo: components["schemas"]["Valor131Dto"];
+        };
+        Importe131Dto: {
+            /** @example 12.5000 */
+            cantidad: string;
+            /** @example 13500 */
+            costo: string;
+        };
+        SubtotalLibro131Dto: {
+            compra: components["schemas"]["Importe131Dto"];
+            venta: components["schemas"]["Importe131Dto"];
+            saldo: components["schemas"]["Importe131Dto"];
+        };
+        BloqueLibro131Dto: {
+            /** @example 1 */
+            mes: number;
+            /** @example ENERO--2026 */
+            periodo: string;
+            saldoInicial: components["schemas"]["Valor131Dto"];
+            lineas: components["schemas"]["LineaLibro131Dto"][];
+            /** @description Entradas del mes */
+            totalEntradas: components["schemas"]["Importe131Dto"];
+            /** @description Salidas del mes */
+            totalSalidas: components["schemas"]["Importe131Dto"];
+            saldoFinal: components["schemas"]["Valor131Dto"];
+            /** @description Solo con detallado=true: COMPRA (02/18) · VENTA (01+17) · SALDO */
+            subtotal: components["schemas"]["SubtotalLibro131Dto"] | null;
+        };
+        ProductoLibro131Dto: {
+            /** @example 1 */
+            productoId: number;
+            /** @example D-FIERRO */
+            productoCodigo: string;
+            cabecera: components["schemas"]["CabeceraLibro131Dto"];
+            bloques: components["schemas"]["BloqueLibro131Dto"][];
+        };
+        Libro131Dto: {
+            /** @example 2026 */
+            anio: number;
+            /** @example 1 */
+            mes: number | null;
+            /** @example false */
+            detallado: boolean;
+            productos: components["schemas"]["ProductoLibro131Dto"][];
         };
         EmpresaDatosDto: {
             /** @example 20000000001 */
@@ -2600,6 +3027,39 @@ export interface components {
              */
             direccion: "ARRIBA" | "ABAJO";
         };
+        ResumenProductoMesDto: {
+            /** @example 1 */
+            productoId: number;
+            /** @example D-FIERRO */
+            productoCodigo: string;
+            /** @example 6 */
+            movimientos: number;
+            /** @example 40.5000 */
+            comprasTn: string;
+            /** @example 32.2500 */
+            ventasTn: string;
+        };
+        EstadoLibroMesDto: {
+            /**
+             * @description PENDIENTE: sin impresión registrada · IMPRESO: la última impresión coincide con el contenido actual · DESACTUALIZADO: el contenido impreso cambió después (reimprimir)
+             * @example IMPRESO
+             * @enum {string}
+             */
+            estado: "PENDIENTE" | "IMPRESO" | "DESACTUALIZADO";
+            /**
+             * @description Última impresión registrada
+             * @example 2026-02-10T15:04:05.000Z
+             */
+            impresoEn: string | null;
+        };
+        EstadoAsientoMesDto: {
+            /**
+             * @description Reservado para el Sprint 11 (exportación a WinConta)
+             * @example PENDIENTE
+             * @enum {string}
+             */
+            estado: "PENDIENTE";
+        };
         LibroImpresoDto: {
             /** @example 2026-02-10T15:04:05.000Z */
             impresoEn: string;
@@ -2635,6 +3095,30 @@ export interface components {
             versionCierre: number | null;
             /** @example true */
             tieneMovimientos: boolean;
+            /**
+             * @description Movimientos REGISTRADOS del mes (todos los productos, establecimiento principal)
+             * @example 14
+             */
+            movimientos: number;
+            /**
+             * @description TN compradas en el mes (entradas 02/18, docs/02 §5), suma exacta de los productos
+             * @example 120.5000
+             */
+            comprasTn: string;
+            /**
+             * @description TN vendidas en el mes (salidas 01 + 17), suma exacta
+             * @example 98.2500
+             */
+            ventasTn: string;
+            porProducto: components["schemas"]["ResumenProductoMesDto"][];
+            /** @description Libro 12.1 del mes según el registro de impresiones con hash (D-08) */
+            libro121: components["schemas"]["EstadoLibroMesDto"];
+            /** @description Asiento del mes: llega en el Sprint 11 (hoy siempre PENDIENTE) */
+            asiento: components["schemas"]["EstadoAsientoMesDto"];
+            /**
+             * @deprecated
+             * @description Obsoleto: usa libro121 (estado y fecha). Se quitará en el Sprint 13
+             */
             libroImpreso: components["schemas"]["LibroImpresoDto"] | null;
             asientosExportados: components["schemas"]["AsientoExportadoResumenDto"][];
         };
@@ -2648,6 +3132,38 @@ export interface components {
              * @example false
              */
             anioCompletoCerrado: boolean;
+        };
+        MovimientoSaldoCeroDto: {
+            /** @example 0b6f2c1e-9a8d-4c7b-b6a5-1234567890ab */
+            movimientoId: string;
+            /** @example 1 */
+            productoId: number;
+            /** @example D-FIERRO */
+            productoCodigo: string;
+            /** @example 2026-01-20 */
+            fecha: string;
+            /** @example 12 */
+            orden: number;
+            /**
+             * @description Costo que queda con saldo cero en TN
+             * @example 0.0000000001
+             */
+            saldoCosto: string;
+        };
+        DetalleSaldoCeroDto: {
+            /** @example 2026-01 */
+            periodo: string;
+            movimientos: components["schemas"]["MovimientoSaldoCeroDto"][];
+        };
+        ErrorSaldoCeroDto: {
+            /**
+             * @example CIERRE_CON_SALDO_CERO_CON_COSTO
+             * @enum {string}
+             */
+            codigo: "CIERRE_CON_SALDO_CERO_CON_COSTO";
+            /** @example No se puede cerrar 2026-01: hay movimientos con saldo cero y costo. Revísalos antes de cerrar. */
+            mensaje: string;
+            detalle: components["schemas"]["DetalleSaldoCeroDto"];
         };
         CerrarEnBloqueDto: {
             /**
@@ -2871,6 +3387,11 @@ export interface components {
             /** @example 13500 */
             costoTotal: string;
             /**
+             * @description costoTotal ÷ cantidad, exacto (calculado en la API con decimal); "0" si la cantidad es cero
+             * @example 1080
+             */
+            costoUnitario: string;
+            /**
              * @example MANUAL
              * @enum {string}
              */
@@ -2883,6 +3404,34 @@ export interface components {
             registradoPor: string | null;
             /** @example 2026-01-02T15:04:05.000Z */
             actualizadoEn: string;
+        };
+        CrearSaldoInicialDto: {
+            /**
+             * @description TN, hasta 4 decimales
+             * @example 12.5000
+             */
+            cantidad: string;
+            /**
+             * @description S/, hasta 10 decimales
+             * @example 13500.00
+             */
+            costoTotal: string;
+            /** @example Ajuste de céntimos para cuadrar con el sistema contable */
+            motivo: string;
+            /**
+             * @description Confirma que el nuevo SI deja saldos negativos (02 §4). Sin ella → 409 STOCK_NEGATIVO_REQUIERE_CONFIRMACION
+             * @example false
+             */
+            confirmarStockNegativo?: boolean;
+            /** @example 2026 */
+            anio: number;
+            /** @example 1 */
+            productoId: number;
+            /**
+             * @description Por defecto, el establecimiento principal (0001)
+             * @example 1
+             */
+            establecimientoId?: number;
         };
         EditarSaldoInicialDto: {
             /**
@@ -2902,6 +3451,205 @@ export interface components {
              * @example false
              */
             confirmarStockNegativo?: boolean;
+        };
+        ToneladasMesDto: {
+            /**
+             * @description null = total del año
+             * @example 1
+             */
+            mes: number | null;
+            /** @example 10.0000 */
+            saldoInicial: string;
+            /**
+             * @description Entradas 02/18
+             * @example 20.0000
+             */
+            compras: string;
+            /**
+             * @description Otras entradas (p. ej. ajuste 28)
+             * @example 0
+             */
+            otrasEntradas: string;
+            /**
+             * @description Salidas 01 + 17
+             * @example 15.0000
+             */
+            ventas: string;
+            /**
+             * @description Mermas 13 (según informe técnico)
+             * @example 0
+             */
+            mermas: string;
+            /**
+             * @description Desmedros 14
+             * @example 0
+             */
+            desmedros: string;
+            /**
+             * @description Otras salidas (p. ej. ajuste 28)
+             * @example 0
+             */
+            otrasSalidas: string;
+            /** @example 15.0000 */
+            saldoFinal: string;
+        };
+        ToneladasProductoDto: {
+            /** @example 1 */
+            productoId: number;
+            /** @example D-FIERRO */
+            productoCodigo: string;
+            /** @example CHATARRA DE FIERRO */
+            descripcion: string;
+            meses: components["schemas"]["ToneladasMesDto"][];
+            total: components["schemas"]["ToneladasMesDto"];
+        };
+        ToneladasTotalDto: {
+            meses: components["schemas"]["ToneladasMesDto"][];
+            total: components["schemas"]["ToneladasMesDto"];
+        };
+        ToneladasDto: {
+            /** @example 2026 */
+            anio: number;
+            productos: components["schemas"]["ToneladasProductoDto"][];
+            /** @description Bloque "EN TONELADAS": suma de los productos */
+            enToneladas: components["schemas"]["ToneladasTotalDto"];
+        };
+        CostoVentasMesDto: {
+            /** @example 1 */
+            mes: number | null;
+            /** @example 10800 */
+            saldoInicial: string;
+            /** @example 21600 */
+            compras: string;
+            /** @example 0 */
+            otrasEntradas: string;
+            /** @example 16200 */
+            saldoFinal: string;
+            /**
+             * @description Costo de las mermas 13
+             * @example 0
+             */
+            mermas: string;
+            /**
+             * @description Costo de los desmedros 14
+             * @example 0
+             */
+            desmedros: string;
+            /** @example 0 */
+            otrasSalidas: string;
+            /**
+             * @description COSTO DE VENTAS = Σ costo de las salidas 01 + 17
+             * @example 16200
+             */
+            costoVentas: string;
+            /**
+             * @description TOTAL SALIDAS VALORIZADAS = SI + compras + otras entradas − SF (incluye mermas, 02 §5)
+             * @example 16200
+             */
+            totalSalidasValorizadas: string;
+        };
+        CostoVentasProductoDto: {
+            /** @example 1 */
+            productoId: number;
+            /** @example D-FIERRO */
+            productoCodigo: string;
+            /** @example CHATARRA DE FIERRO */
+            descripcion: string;
+            meses: components["schemas"]["CostoVentasMesDto"][];
+            total: components["schemas"]["CostoVentasMesDto"];
+        };
+        CostoVentasTotalDto: {
+            meses: components["schemas"]["CostoVentasMesDto"][];
+            total: components["schemas"]["CostoVentasMesDto"];
+        };
+        CostoVentasDto: {
+            /** @example 2026 */
+            anio: number;
+            productos: components["schemas"]["CostoVentasProductoDto"][];
+            /** @description Bloque resumen */
+            resumen: components["schemas"]["CostoVentasTotalDto"];
+        };
+        TnSolesDto: {
+            /** @example 12.5000 */
+            cantidad: string;
+            /** @example 13500 */
+            costo: string;
+        };
+        ResumenAnualFilaDto: {
+            inventarioInicial: components["schemas"]["TnSolesDto"];
+            compras: components["schemas"]["TnSolesDto"];
+            otrasEntradas: components["schemas"]["TnSolesDto"];
+            inventarioFinal: components["schemas"]["TnSolesDto"];
+            /** @description Ventas 01 + 17 */
+            costoVentas: components["schemas"]["TnSolesDto"];
+            mermas: components["schemas"]["TnSolesDto"];
+            desmedros: components["schemas"]["TnSolesDto"];
+            otrasSalidas: components["schemas"]["TnSolesDto"];
+            /** @example 16200 */
+            totalSalidasValorizadas: string;
+        };
+        ResumenAnualProductoDto: {
+            /** @example 1 */
+            productoId: number;
+            /** @example D-FIERRO */
+            productoCodigo: string;
+            /** @example CHATARRA DE FIERRO */
+            descripcion: string;
+            resumen: components["schemas"]["ResumenAnualFilaDto"];
+        };
+        ResumenAnualDto: {
+            /** @example 2026 */
+            anio: number;
+            productos: components["schemas"]["ResumenAnualProductoDto"][];
+            total: components["schemas"]["ResumenAnualFilaDto"];
+        };
+        MargenMesDto: {
+            /** @example 1 */
+            mes: number | null;
+            /**
+             * @description TN vendidas CON valor de venta
+             * @example 15.0000
+             */
+            ventasCantidad: string;
+            /**
+             * @description Valor de venta sin IGV × cantidad (× tipo de cambio si USD)
+             * @example 18000
+             */
+            ventasSoles: string;
+            /**
+             * @description Costo de esas mismas ventas
+             * @example 16200
+             */
+            costoVentas: string;
+            /** @example 1800 */
+            margen: string;
+            /**
+             * @description margen ÷ ventas × 100 (exacto); null sin ventas con precio
+             * @example 10
+             */
+            porcentaje: string | null;
+            /** @description Ventas SIN valor de venta (histórico): aparte, no entran en el porcentaje */
+            sinPrecio: components["schemas"]["TnSolesDto"];
+        };
+        MargenProductoDto: {
+            /** @example 1 */
+            productoId: number;
+            /** @example D-FIERRO */
+            productoCodigo: string;
+            /** @example CHATARRA DE FIERRO */
+            descripcion: string;
+            meses: components["schemas"]["MargenMesDto"][];
+            total: components["schemas"]["MargenMesDto"];
+        };
+        MargenTotalDto: {
+            meses: components["schemas"]["MargenMesDto"][];
+            total: components["schemas"]["MargenMesDto"];
+        };
+        MargenDto: {
+            /** @example 2026 */
+            anio: number;
+            productos: components["schemas"]["MargenProductoDto"][];
+            total: components["schemas"]["MargenTotalDto"];
         };
     };
     responses: never;
@@ -3203,6 +3951,15 @@ export interface operations {
                     "application/json": components["schemas"]["ImportacionHistoricoDto"];
                 };
             };
+            /** @description PERIODO_CERRADO, HISTORICO_YA_CARGADO, NO_DISPONIBLE_EN_DEMO */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
         };
     };
     ImportacionController_verificarParidad: {
@@ -3308,6 +4065,196 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+        };
+    };
+    LibrosController_libro121Consultar: {
+        parameters: {
+            query: {
+                anio: number;
+                /** @description Sin mes: el año completo */
+                mes?: number;
+                /** @description Sin producto: todos */
+                productoId?: number;
+                formato?: "json" | "pdf";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Libro121Dto"];
+                    "application/pdf": components["schemas"]["Libro121Dto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                    "application/pdf": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description producto inexistente */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                    "application/pdf": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+        };
+    };
+    LibrosController_pruebaMargenes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PDF A4 horizontal */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    LibrosController_impresiones: {
+        parameters: {
+            query: {
+                anio: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImpresionesLibro121Dto"];
+                };
+            };
+        };
+    };
+    LibrosController_registrarImpresion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegistrarImpresionDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImpresionLibro121Dto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description PERIODO_NO_CERRADO, CONFLICTO_CONCURRENTE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+        };
+    };
+    LibrosController_libro131Consultar: {
+        parameters: {
+            query: {
+                anio: number;
+                /** @description Sin mes: el año completo */
+                mes?: number;
+                /** @description Sin producto: todos */
+                productoId?: number;
+                /** @description Hoja de trabajo de la contadora (D-03): agrega RUC, razón social y descripción y el subtotal COMPRA · VENTA · SALDO del mes. Solo ADMIN y CONTADOR (D-33); con otro rol → 403 */
+                detallado?: boolean;
+                formato?: "json" | "pdf" | "xlsx";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Libro131Dto"];
+                    "application/pdf": components["schemas"]["Libro131Dto"];
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["Libro131Dto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                    "application/pdf": components["schemas"]["ErrorNegocioDto"];
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description SIN_PERMISO (detallado=true con ASISTENTE o CONSULTA, D-33) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                    "application/pdf": components["schemas"]["ErrorNegocioDto"];
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description producto inexistente */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                    "application/pdf": components["schemas"]["ErrorNegocioDto"];
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ErrorNegocioDto"];
                 };
             };
         };
@@ -4170,7 +5117,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                    "application/json": components["schemas"]["ErrorNegocioDto"] | components["schemas"]["ErrorSaldoCeroDto"];
                 };
             };
             /** @description PERIODO_FUTURO, PERIODO_ANTERIOR_AL_INICIO */
@@ -4210,7 +5157,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                    "application/json": components["schemas"]["ErrorNegocioDto"] | components["schemas"]["ErrorSaldoCeroDto"];
                 };
             };
             /** @description PERIODO_FUTURO (posterior al mes en curso, America/Lima), PERIODO_ANTERIOR_AL_INICIO (anterior al primer periodo registrado) */
@@ -4344,6 +5291,47 @@ export interface operations {
             };
         };
     };
+    SaldosInicialesController_crear: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CrearSaldoInicialDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaldoInicialDto"];
+                };
+            };
+            /** @description producto o establecimiento inexistente */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description SALDO_INICIAL_YA_EXISTE (usa PUT /saldos-iniciales/:id), PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, CONFLICTO_CONCURRENTE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"] | components["schemas"]["ErrorStockNegativoDto"];
+                };
+            };
+        };
+    };
     SaldosInicialesController_editar: {
         parameters: {
             query?: never;
@@ -4374,6 +5362,167 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorNegocioDto"] | components["schemas"]["ErrorStockNegativoDto"];
+                };
+            };
+        };
+    };
+    ReportesController_toneladas: {
+        parameters: {
+            query: {
+                anio: number;
+                formato?: "json" | "xlsx";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ToneladasDto"];
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ToneladasDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+        };
+    };
+    ReportesController_costoVentas: {
+        parameters: {
+            query: {
+                anio: number;
+                formato?: "json" | "xlsx";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CostoVentasDto"];
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["CostoVentasDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+        };
+    };
+    ReportesController_resumenAnual: {
+        parameters: {
+            query: {
+                anio: number;
+                formato?: "json" | "xlsx";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumenAnualDto"];
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ResumenAnualDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+        };
+    };
+    ReportesController_margen: {
+        parameters: {
+            query: {
+                anio: number;
+                formato?: "json" | "xlsx";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MargenDto"];
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["MargenDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+        };
+    };
+    ReportesController_excelContadora: {
+        parameters: {
+            query: {
+                anio: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Archivo .xlsx */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ErrorNegocioDto"];
                 };
             };
         };

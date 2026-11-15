@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { escribirFiltrosKardex, leerFiltrosKardex } from './filtros-url'
 import { PaginaKardex } from './pagina-kardex'
 import { solicitar } from '@/api/cliente'
+import { descargarArchivo } from '@/api/descargas'
 import { ErrorApi } from '@/lib/errores'
 import { reiniciarSesionParaPruebas } from '@/lib/sesion'
 import { crearApiFalsa, renderizarEnRuta } from '@/pruebas/api-falsa'
@@ -12,6 +13,7 @@ import { comprobanteDemo, productosDemo, resultadoDemo } from '@/pruebas/comprob
 import { alertaDemo, kardexDemo } from '@/pruebas/periodos-demo'
 
 vi.mock('@/api/cliente', () => ({ solicitar: vi.fn() }))
+vi.mock('@/api/descargas', () => ({ descargarArchivo: vi.fn(async (_ruta: string, nombre: string) => nombre) }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }))
 vi.mock('@/lib/formato', async (original) => ({ ...(await original<typeof import('@/lib/formato')>()), hoyIso: () => '2026-03-25' }))
 
@@ -192,5 +194,22 @@ describe('Kardex: permisos, reordenar y recalcular', () => {
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Recalcular' }))
     await waitFor(() => expect(api.hechas('POST', '/kardex/recalcular')[0]?.cuerpo).toEqual({ anio: 2026, productoId: 1 }))
     expect(toast.success).toHaveBeenCalledWith('Kardex recalculado: 3 filas, 0 con cambios.', expect.anything())
+  })
+})
+
+describe('Kardex: PDF 13.1 y Excel', () => {
+  it('descargan el libro 13.1 con los mismos filtros; Detallado solo se envía para ADMIN y CONTADOR', async () => {
+    const ruta = '/inventario/kardex?producto=1&anio=2026&mes=3&detallado=1'
+    const { unmount } = abrir(['inventario:CONTADOR'], ruta)
+    await userEvent.click(await screen.findByRole('button', { name: 'PDF 13.1 de FIERRO, Marzo 2026' }))
+    await waitFor(() => expect(descargarArchivo).toHaveBeenCalledWith(
+      '/libros/13-1?anio=2026&mes=3&productoId=1&detallado=true&formato=pdf', 'libro-13-1-FIERRO-2026-03.pdf',
+    ))
+    unmount()
+    abrir(['inventario:CONSULTA'], ruta)
+    await userEvent.click(await screen.findByRole('button', { name: 'Excel del kardex de FIERRO, Marzo 2026' }))
+    await waitFor(() => expect(descargarArchivo).toHaveBeenLastCalledWith(
+      '/libros/13-1?anio=2026&mes=3&productoId=1&formato=xlsx', 'libro-13-1-FIERRO-2026-03.xlsx',
+    ))
   })
 })

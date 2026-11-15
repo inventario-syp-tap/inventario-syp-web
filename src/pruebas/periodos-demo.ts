@@ -10,7 +10,13 @@ export function periodoDemo(anio: number, mes: number, estado: EstadoPeriodo = '
     cerradoEn: estado === 'CERRADO' ? `${anio}-${String(mes).padStart(2, '0')}-28T20:00:00.000Z` : null,
     cerradoPor: estado === 'CERRADO' ? 'Contadora (demo)' : null,
     versionCierre: estado === 'CERRADO' ? 1 : null,
-    tieneMovimientos: true, libroImpreso: null, asientosExportados: [],
+    tieneMovimientos: true, movimientos: 4, comprasTn: '30.0000', ventasTn: '25.5000',
+    porProducto: [
+      { productoId: 1, productoCodigo: 'FIERRO', movimientos: 3, comprasTn: '30.0000', ventasTn: '20.0000' },
+      { productoId: 2, productoCodigo: 'INOXIDABLE', movimientos: 1, comprasTn: '0.0000', ventasTn: '5.5000' },
+    ],
+    libro121: { estado: 'PENDIENTE', impresoEn: null }, asiento: { estado: 'PENDIENTE' },
+    libroImpreso: null, asientosExportados: [],
     ...datos,
   }
 }
@@ -83,7 +89,7 @@ export function alertaDemo(datos: Partial<Alerta> = {}): Alerta {
 export function saldoInicialDemo(datos: Partial<SaldoInicial> = {}): SaldoInicial {
   return {
     id: 4, anio: 2026, productoId: 1, productoCodigo: 'FIERRO', establecimientoId: 1, cantidad: '50.0000',
-    costoTotal: '3000.00', origen: 'CIERRE_ANUAL', motivo: null, desactualizado: false, registradoPor: 'Contadora (demo)',
+    costoTotal: '3000.00', costoUnitario: '60', origen: 'CIERRE_ANUAL', motivo: null, desactualizado: false, registradoPor: 'Contadora (demo)',
     actualizadoEn: '2026-01-05T15:00:00.000Z',
     ...datos,
   }

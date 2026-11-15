@@ -3,7 +3,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { toast } from 'sonner'
 import { PaginaPeriodos } from './pagina-periodos'
-import { accionesPorMes, conSigno, negativo } from './utilidades'
+import { accionesPorMes, conSigno, negativo, nombreCampoCierre } from './utilidades'
 import { solicitar } from '@/api/cliente'
 import { ErrorApi } from '@/lib/errores'
 import { reiniciarSesionParaPruebas } from '@/lib/sesion'
@@ -51,25 +51,57 @@ describe('Periodos: utilidades', () => {
     expect(negativo('-0.0000')).toBe(false)
     expect(negativo('-5')).toBe(true)
   })
+
+  it('los campos del cierre se nombran en español; uno desconocido se muestra tal cual', () => {
+    expect(nombreCampoCierre('siCantidad')).toBe('saldo inicial TN')
+    expect(nombreCampoCierre('siCosto')).toBe('saldo inicial S/')
+    expect(nombreCampoCierre('costoVentas')).toBe('costo de ventas S/')
+    expect(nombreCampoCierre('otrasSalidasCosto')).toBe('otras salidas S/')
+    expect(nombreCampoCierre('sfCosto')).toBe('saldo final S/')
+    expect(nombreCampoCierre('campoNuevo')).toBe('campoNuevo')
+    expect(nombreCampoCierre('toString')).toBe('toString')
+  })
 })
 
 describe('Periodos: tarjetas y permisos', () => {
-  it('doce tarjetas con estado en texto, movimientos, libro y asiento ("Pendiente" si no vienen)', async () => {
-    api.en('GET', '/periodos', {
-      ...periodosAnioDemo(2026, [1, 2]),
-      meses: periodosAnioDemo(2026, [1, 2]).meses.map((m) => m.mes === 1
-        ? periodoDemo(2026, 1, 'CERRADO', { libroImpreso: { impresoEn: '2026-02-10T15:00:00.000Z' }, asientosExportados: [{ tipoAsiento: 'COSTO_VENTAS', numeroAsiento: '0001', exportadoEn: '2026-02-11T15:00:00.000Z' }] })
-        : m),
-    })
+  it('doce tarjetas: movimientos, TN de compras y ventas, detalle por producto, enlace al libro 12.1 y asiento Pendiente', async () => {
     abrir(['inventario:CONSULTA'])
-    expect(await screen.findAllByRole('group')).toHaveLength(12)
-    const enero = tarjeta('Enero')
-    expect(within(enero).getByText('Cerrado')).toBeInTheDocument()
-    expect(within(enero).getByText(/impreso el 10\/02\/2026/)).toBeInTheDocument()
-    expect(within(enero).getByText(/exportado \(0001\)/)).toBeInTheDocument()
+    // Las tarjetas son grupos con nombre (el detalle por producto es un <details>, que también es un grupo).
+    expect((await screen.findAllByRole('group')).filter((g) => g.hasAttribute('aria-labelledby'))).toHaveLength(12)
     const marzo = tarjeta('Marzo')
     expect(within(marzo).getByText('Abierto')).toBeInTheDocument()
+    expect(within(marzo).getByText('4 movimientos')).toBeInTheDocument()
+    expect(marzo).toHaveTextContent('Compras: 30.0000 TN')
+    expect(marzo).toHaveTextContent('Ventas: 25.5000 TN')
+    expect(within(marzo).getByText('Por producto')).toBeInTheDocument()
+    expect(marzo).toHaveTextContent('INOXIDABLE: 1 movimiento · compras 0.0000 TN · ventas 5.5000 TN')
+    expect(within(marzo).getByRole('link', { name: 'Ver libro 12.1 de Marzo 2026' }))
+      .toHaveAttribute('href', '/inventario/libros/12-1?anio=2026&mes=3')
+    // Libro 12.1 y asiento pendientes.
     expect(within(marzo).getAllByText('Pendiente')).toHaveLength(2)
+    expect(within(marzo).queryByText(/Con movimientos/)).not.toBeInTheDocument()
+  })
+
+  it('libro 12.1 en sus tres estados: Pendiente, Impreso dd/mm/aaaa y Desactualizado (sin usar libroImpreso)', async () => {
+    const base = periodosAnioDemo(2026, [1, 2, 3])
+    api.en('GET', '/periodos', {
+      ...base,
+      meses: base.meses.map((m) => {
+        if (m.mes === 1) return { ...m, libro121: { estado: 'IMPRESO', impresoEn: '2026-02-10T15:00:00.000Z' } }
+        // libroImpreso (obsoleto) no debe usarse: manda libro121.
+        if (m.mes === 2) return { ...m, libro121: { estado: 'DESACTUALIZADO', impresoEn: '2026-03-05T15:00:00.000Z' }, libroImpreso: { impresoEn: '2026-03-05T15:00:00.000Z' } }
+        if (m.mes === 3) return { ...m, libroImpreso: { impresoEn: '2026-04-05T15:00:00.000Z' }, movimientos: 1 }
+        return m
+      }),
+    })
+    abrir(['inventario:CONSULTA'])
+    await screen.findAllByRole('group')
+    expect(within(tarjeta('Enero')).getByText('Impreso 10/02/2026')).toBeInTheDocument()
+    expect(within(tarjeta('Febrero')).getByText('Desactualizado')).toBeInTheDocument()
+    const marzo = tarjeta('Marzo')
+    expect(within(marzo).queryByText(/Impreso/)).not.toBeInTheDocument()
+    expect(within(marzo).getAllByText('Pendiente')).toHaveLength(2)
+    expect(within(marzo).getByText('1 movimiento')).toBeInTheDocument()
   })
 
   it('CONSULTA y ASISTENTE no ven Cerrar, Reabrir, Cerrar en bloque ni Cierre anual', async () => {
@@ -128,10 +160,30 @@ describe('Periodos: cerrar', () => {
     await waitFor(() => expect(aviso.parentElement).toHaveFocus())
   })
 
+  it('al volver a cerrar, los totales que cambiaron se nombran en español (no con las claves internas)', async () => {
+    const dif = (campo: string, anterior: string, nuevo: string, diferencia: string) => ({ productoId: 1, campo, anterior, nuevo, diferencia })
+    api.en('POST', '/periodos/2026/3/cerrar', {
+      periodo: periodoDemo(2026, 3, 'CERRADO'), cierres: [], saldosNegativos: [],
+      diferenciasConCierreAnterior: [
+        dif('comprasCantidad', '10.0000', '12.0000', '2.0000'), dif('comprasCosto', '1000.00', '1200.00', '200.00'),
+        dif('sfCantidad', '5.0000', '7.0000', '2.0000'), dif('sfCosto', '500.00', '700.00', '200.00'),
+      ],
+    })
+    abrir(['inventario:CONTADOR'])
+    await userEvent.click(await screen.findByRole('button', { name: 'Cerrar Marzo 2026' }))
+    const dialogo = await screen.findByRole('alertdialog', { name: 'Cerrar Marzo 2026' })
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Cerrar Marzo 2026' }))
+    const aviso = (await screen.findByText('Marzo 2026 cerrado, con advertencias')).closest('[role="status"]') as HTMLElement
+    expect(aviso).toHaveTextContent(
+      'Marzo 2026: 4 totales cambiaron respecto del cierre anterior (compras TN, compras S/, saldo final TN, saldo final S/).')
+    expect(aviso).not.toHaveTextContent(/comprasCantidad|comprasCosto|sfCantidad|sfCosto/)
+  })
+
   it('CIERRE_CON_SALDO_CERO_CON_COSTO: el diálogo sigue abierto y lista los movimientos con enlace al kardex', async () => {
     api.en('POST', '/periodos/2026/3/cerrar', () => {
       throw new ErrorApi(409, 'CIERRE_CON_SALDO_CERO_CON_COSTO', 'x', {
-        movimientos: [{ movimientoId: 'mov-9', productoId: 2, productoCodigo: 'INOXIDABLE', fecha: '2026-03-28' }],
+        periodo: '2026-03',
+        movimientos: [{ movimientoId: 'mov-9', productoId: 2, productoCodigo: 'INOXIDABLE', fecha: '2026-03-28', orden: 4, saldoCosto: '0.0000000001' }],
       })
     })
     abrir(['inventario:CONTADOR'])
