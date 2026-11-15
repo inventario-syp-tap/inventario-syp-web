@@ -85,3 +85,14 @@ describe('kardex, periodos y saldos (S9)', () => {
     expect(puede('periodos:cerrar-en-bloque', ['inventario:CONTADOR'])).toBe(false)
   })
 })
+
+describe('libros y reportes (S10)', () => {
+  it('registrar impresión, prueba de márgenes, 13.1 detallado (D-33) y Excel contadora: solo A y C', () => {
+    for (const accion of ['libros:registrar-impresion', 'libros:prueba-margenes', 'libros:13-1-detallado', 'reportes:excel-contadora'] as const) {
+      expect(puede(accion, ['inventario:ADMIN'])).toBe(true)
+      expect(puede(accion, ['inventario:CONTADOR'])).toBe(true)
+      expect(puede(accion, ['inventario:ASISTENTE'])).toBe(false)
+      expect(puede(accion, ['inventario:CONSULTA'])).toBe(false)
+    }
+  })
+})

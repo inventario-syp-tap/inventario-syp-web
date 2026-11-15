@@ -109,6 +109,12 @@ export function formatearFechaHora(instante: string | null | undefined): string 
   return FECHA_HORA.format(milisegundos).replace(',', '')
 }
 
+/** Solo la fecha de un instante ISO en la hora local: "2026-02-10T15:04:05.000Z" → "10/02/2026". */
+export function formatearFechaInstante(instante: string | null | undefined): string {
+  const texto = formatearFechaHora(instante)
+  return /^\d{2}\/\d{2}\/\d{4}/.test(texto) ? texto.slice(0, 10) : texto
+}
+
 const HOY_EN_LIMA = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima', year: 'numeric', month: '2-digit', day: '2-digit' })
 
 /** Hoy en Lima como "YYYY-MM-DD" (en-CA ya da ese orden; sin new Date('YYYY-MM-DD')). */

@@ -19,3 +19,10 @@ export const esquemaSaldoInicial = z.object({
 })
 
 export type FormularioSaldoInicial = z.infer<typeof esquemaSaldoInicial>
+
+/** Nuevo saldo manual (CrearSaldoInicialDto): además, el producto (solo los que no tienen saldo en el año). */
+export const esquemaNuevoSaldoInicial = esquemaSaldoInicial.extend({
+  productoId: z.string().min(1, 'Elige un producto.'),
+})
+
+export type FormularioNuevoSaldoInicial = z.infer<typeof esquemaNuevoSaldoInicial>

@@ -39,7 +39,7 @@ Se definen en `src/estilos/globals.css` con variables CSS y `@theme inline` de T
 | `--destructive` | `#B91C1C` | `#F87171` | stock negativo, errores, anular |
 | `--success` *(extra)* | `#15803D` | `#4ADE80` | periodo cerrado, paridad OK, exportado |
 | `--warning` *(extra)* | `#B45309` | `#FBBF24` | fecha fuera de orden, SI desactualizado, impresión pendiente |
-| `--chart-1` / `--chart-2` / `--chart-3` | `#52525B` / `#0E7490` / `#B4602A` | `#A1A1AA` / `#22D3EE` / `#F0A06A` | color de cada producto (puntos, chips, gráficos), por su orden en el maestro |
+| `--chart-1` / `--chart-2` / `--chart-3` | `#52525B` / `#0891B2` / `#B4602A` | `#A1A1AA` / `#0B9FBD` / `#C97A44` | color de cada producto (puntos, chips, gráficos), por su orden en el maestro. S10: `--chart-2` y `--chart-3` ajustados con el validador de paletas (≥ 3:1 para elementos gráficos); `--chart-2` claro (3.7:1) **no sirve para texto** |
 | `--sidebar*` | como `--card`, `--foreground`, `--primary`… | ídem | barra lateral (componente Sidebar) |
 
 - Los extra se registran como `--color-success` y `--color-warning` (con `-foreground`) para usar `bg-success`, `text-warning`, etc.
@@ -146,7 +146,8 @@ Menú lateral (240 px, plegable a íconos):
 | `DialogoConfirmacion` | alert-dialog que repite el efecto ("Se anulará F001-0000123 y se recalculará el kardex de FIERRO 2026") con motivo opcional u obligatorio |
 | `DialogoStockNegativo` | ante 409 `STOCK_NEGATIVO_REQUIERE_CONFIRMACION`: producto, fecha, disponible antes, saldo resultante; "Registrar de todos modos" reenvía con `confirmarStockNegativo: true` |
 | `BannerServidor` | "Conectando con el servidor… (puede tardar hasta 1 minuto)" con barra indeterminada mientras el cliente reintenta |
-| `BotonDescarga` | descarga PDF/Excel como blob con el nombre de `Content-Disposition`, muestra progreso y error |
+| `BotonDescarga` | descarga PDF/Excel como blob con el nombre de `Content-Disposition` (`filename*` o `filename`; si falta, un nombre por defecto); mientras la API genera el archivo dice "Generando…" con spinner (`aria-busy`, bloqueado con `aria-disabled`); errores en un toast que no se cierra solo: 403 sin permiso, 409 mes no cerrado y 429 límite de descargas por minuto (S10) |
+| `EstadoLibro121` | estado del libro 12.1 de un mes con ícono y texto: Pendiente · ✓ Impreso dd/mm/aaaa · ⚠ Impresión desactualizada: vuelve a imprimir ("Desactualizado" en las tarjetas de Periodos) (S10) |
 | `EstadoVacio` / `EstadoError` | mensaje + acción ("Registrar compra", "Reintentar") |
 | `RutaProtegida` | exige sesión y rol (`tieneRol('inventario', …)`), si no redirige |
 
@@ -226,10 +227,10 @@ Producto ( ● FIERRO | ● INOX | ● COBRE )  Año [2026 ▾]  Mes [Marzo ▾ 
 - (Valores ilustrativos.)
 
 ### 5.9 Periodos (S9)
-Doce tarjetas por año: mes, estado, movimientos, compras y ventas (TN), libro 12.1 (impreso / pendiente / desactualizado) y asiento (exportado / pendiente / desactualizado). **Cerrar mes** (solo si el anterior está cerrado): diálogo con advertencias (saldos negativos listados desde `GET /kardex/alertas`, no bloquean; después del cierre, los que devuelve la API). Si hay movimientos con saldo cero y costo, la API rechaza el cierre (`CIERRE_CON_SALDO_CERO_CON_COSTO`) y la pantalla lista esos movimientos con enlace al kardex. **Reabrir** (solo el último cerrado): motivo obligatorio. ADMIN: **Cerrar en bloque** (desde–hasta).
+Doce tarjetas por año: mes, estado, número de movimientos, compras y ventas (TN) con el detalle por producto desplegable («Por producto»), libro 12.1 (Pendiente / ✓ Impreso dd/mm/aaaa / ⚠ Desactualizado, de `PeriodoDto.libro121`, con el enlace «Ver libro 12.1» al mes) y asiento (Pendiente hasta el S11). Todo viene calculado en `PeriodoDto`; `libroImpreso` (obsoleto) ya no se usa. **Cerrar mes** (solo si el anterior está cerrado): diálogo con advertencias (saldos negativos listados desde `GET /kardex/alertas`, no bloquean; después del cierre, los que devuelve la API). Si hay movimientos con saldo cero y costo, la API rechaza el cierre (`CIERRE_CON_SALDO_CERO_CON_COSTO`) y la pantalla lista esos movimientos con enlace al kardex. **Reabrir** (solo el último cerrado): motivo obligatorio. ADMIN: **Cerrar en bloque** (desde–hasta).
 
 ### 5.10 Cierre anual y saldos iniciales (S9)
-Asistente de 3 pasos: (1) verificación de los 12 meses cerrados; (2) saldo inicial propuesto del año siguiente vs el existente, diferencias resaltadas con signo (p. ej. `+0.01`); (3) confirmación explícita ("Reemplazar el saldo inicial existente" o "Conservar los existentes", y la confirmación de stock negativo si corresponde). **Saldos iniciales**: tabla por año y producto con origen (Importación, Cierre anual, Manual) y la marca ⚠ "desactualizado"; editar un SI MANUAL exige motivo.
+Asistente de 3 pasos: (1) verificación de los 12 meses cerrados; (2) saldo inicial propuesto del año siguiente vs el existente, diferencias resaltadas con signo (p. ej. `+0.01`); (3) confirmación explícita ("Reemplazar el saldo inicial existente" o "Conservar los existentes", y la confirmación de stock negativo si corresponde). **Saldos iniciales**: tabla por año y producto con cantidad, C.U. (`costoUnitario` de la API, 2 decimales), total, origen (Importación, Cierre anual, Manual) y la marca ⚠ "desactualizado"; editar un SI como MANUAL exige motivo. **Nuevo saldo manual** (A, C; S10): producto (solo los activos sin saldo en el año), cantidad, costo total y motivo obligatorio; stock negativo → `DialogoStockNegativo`; `SALDO_INICIAL_YA_EXISTE` → aviso junto al producto y la tabla se recarga.
 
 ### 5.11 Libro 12.1 — unidades físicas (S10)
 ```
@@ -243,13 +244,14 @@ Libro 12.1   Año [2026 ▾]  Mes [Enero ▾ | Año completo]  Producto [Todos �
 └───────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 - Sin folio ni número de página (hojas legalizadas ya numeradas). Un bloque por mes y producto. Entradas/salidas con 3 decimales, saldos y totales con 2.
-- **Registrar impresión**: fecha y observación; el estado pasa a ✓ Impreso. Si los datos del mes cambian después: ⚠ "Impresión desactualizada: vuelve a imprimir".
-- **Página de prueba de márgenes**: para imprimir en papel común y compararla con una hoja legalizada.
+- Filtros en la URL como el kardex (`?producto&anio&mes=N|todo`; sin producto = Todos). Vista previa con las cifras **tal como llegan** del JSON (ya redondeadas como en el PDF). Con un mes elegido se muestran el estado del mes, el del libro y las impresiones registradas (fecha, quién, reimpresión, vigente u obsoleta, observación).
+- **Registrar impresión** (A, C; solo meses cerrados): pide solo la observación (opcional); la fecha de hoy se muestra como informativa y la oficial es `impresoEn`, que pone el servidor. El estado pasa a ✓ Impreso. Si los datos del mes cambian después: ⚠ "Impresión desactualizada: vuelve a imprimir". Con el mes abierto, un aviso explica que se imprime después de cerrarlo en Periodos.
+- **Página de prueba de márgenes** (A, C): para imprimir en papel común y compararla con una hoja legalizada.
 
 ### 5.12 Libro 13.1 y reportes (S10)
-- **13.1 valorizado**: filtros como el kardex; descarga PDF y Excel; opción detallado.
-- **Toneladas**, **Costo de ventas**, **Resumen anual**: tablas por mes como las hojas del Excel (con su total nombrado: "COSTO DE VENTAS", "MERMAS", "TOTAL SALIDAS VALORIZADAS"), descarga Excel.
-- **Margen**: por producto y mes, ventas S/ − costo de ventas = margen y %; ventas sin precio aparte. Gráfico de barras simple.
+- **13.1 valorizado**: filtros como el kardex (producto o todos); descarga PDF y Excel, sin tabla en pantalla (esa vista es el Kardex, que también tiene los botones «PDF 13.1» y «Excel» con sus filtros). La casilla **Detallado** solo aparece para ADMIN y CONTADOR (D-33) y solo para ellos se envía.
+- **Toneladas** y **Costo de ventas**: tablas por mes como las hojas del Excel, un bloque por producto más "EN TONELADAS" o "RESUMEN", con la fila TOTAL de la API y sus columnas nombradas ("COSTO DE VENTAS", "MERMAS", "TOTAL SALIDAS VALORIZADAS"); descarga Excel. **Resumen anual**: una tabla de conceptos (INVENTARIO INICIAL … TOTAL SALIDAS VALORIZADAS) por producto en TN y S/, con la columna TOTAL (la API no lo da por mes).
+- **Margen**: por producto y mes, ventas S/ − costo de ventas = margen y % ("—" sin ventas con precio); ventas sin precio en columnas aparte. Gráfico de barras simple (recharts, ya en el stack; se carga solo al abrir Margen) con ventas y costo de ventas por mes del total, un solo eje en S/, leyenda y tooltip con las cifras exactas; la tabla "TOTAL DE PRODUCTOS" es su vista accesible. Colores `--chart-2` y `--chart-3`, validados en ambos temas.
 - **Excel formato contadora** (A, C): descarga un .xlsx por año con sus hojas de siempre.
 
 ### 5.13 Asientos y WinConta (S11)
@@ -351,6 +353,8 @@ Dos tarjetas: **Descargar respaldo completo** (`.dump`, para restaurar con `pg_r
 | `TERCERO_PROTEGIDO` | "CLIENTES VARIOS" no puede cambiar de documento ni de nombre. |
 | `PRODUCTO_DUPLICADO` | Ya existe un producto con ese código. |
 | `ESTABLECIMIENTO_DUPLICADO` | Ya existe un establecimiento con ese código. |
+| `SALDO_INICIAL_YA_EXISTE` | Ya existe un saldo inicial de {producto} para {año}. Edítalo desde la tabla. (Junto al producto del «Nuevo saldo manual») |
+| Descargas: 403 `SIN_PERMISO` · 409 `PERIODO_NO_CERRADO` · 429 | No tienes permiso para descargar este archivo. · Ese mes aún no está cerrado: el archivo se genera después de cerrarlo en Periodos. · Llegaste al límite de descargas por minuto. Espera un momento y vuelve a intentarlo. (`BotonDescarga`, desde el S10) |
 | `SALDO_INICIAL_REQUIERE_CONFIRMACION` | El saldo inicial de {año+1} ya existe y es distinto. Elige si lo reemplazas o lo conservas. (El asistente vuelve al paso 2) |
 | `COMPROBANTE_ANULADO` | Ese comprobante está anulado: ya no se puede editar ni mover. |
 | `REORDEN_FUERA_DE_FECHA` | Solo se puede mover dentro de la misma fecha. |

@@ -107,6 +107,11 @@ const MENSAJES: Record<string, Plantilla> = {
   PERIODO_FUTURO: 'Ese mes aún no llega: no se puede cerrar un mes posterior al mes en curso.',
   PERIODO_ANTERIOR_AL_INICIO: 'Ese mes es anterior al primer periodo registrado en el sistema: no hay nada que cerrar.',
   PERIODO_NO_CERRADO: 'Ese mes no está cerrado: no hay nada que reabrir.',
+  SALDO_INICIAL_YA_EXISTE: (d) => {
+    const anio = texto(d, 'anio')
+    const producto = texto(d, 'productoCodigo') ?? texto(d, 'producto')
+    return `Ya existe un saldo inicial${producto ? ` de ${producto}` : ' de ese producto'}${anio ? ` para ${anio}` : ''}. Edítalo desde la tabla.`
+  },
   VIGENCIA_SUPERPUESTA: 'Ya existe una regla vigente en esas fechas para el mismo tipo, producto y operación. Cierra la anterior con "vigente hasta".',
   VIGENCIA_INVALIDA: 'La vigencia no es válida: usa AAAA-MM y que "vigente hasta" no sea anterior a "vigente desde".',
   OPERACION_NO_CORRESPONDE: 'La operación no corresponde al tipo de asiento (costo de ventas: 01 o 17 · merma: 13 · desmedro: 14 · ajustes: 28).',

@@ -22,6 +22,11 @@ export const PaginaPeriodos = lazy(() => import('@/funcionalidades/periodos/pagi
 export const PaginaCierreAnual = lazy(() => import('@/funcionalidades/periodos/pagina-cierre-anual').then((m) => ({ default: m.PaginaCierreAnual })))
 export const PaginaSaldosIniciales = lazy(() =>
   import('@/funcionalidades/saldos-iniciales/pagina-saldos-iniciales').then((m) => ({ default: m.PaginaSaldosIniciales })))
+export const PaginaLibro121 = lazy(() => import('@/funcionalidades/libros/pagina-libro-12-1').then((m) => ({ default: m.PaginaLibro121 })))
+export const PaginaLibro131 = lazy(() => import('@/funcionalidades/libros/pagina-libro-13-1').then((m) => ({ default: m.PaginaLibro131 })))
+export const PaginaReporte = lazy(() => import('@/funcionalidades/reportes/pagina-reporte').then((m) => ({ default: m.PaginaReporte })))
+export const PaginaExcelContadora = lazy(() =>
+  import('@/funcionalidades/reportes/pagina-excel-contadora').then((m) => ({ default: m.PaginaExcelContadora })))
 
 /** Mientras llega el código de la pantalla: esqueleto (nunca en blanco, docs/UI-UX.md §6). */
 export function CargandoPantalla() {

@@ -364,3 +364,30 @@ describe('cliente de la API: coordinación entre pestañas', () => {
     }
   })
 })
+
+describe('cliente de la API: descargas de archivos', () => {
+  it('solicitarArchivo envía el token, acepta cualquier tipo y devuelve el blob con Content-Disposition', async () => {
+    const p = await abrirPestana()
+    p.sesion.establecerSesion('token-demo', usuarioDemo())
+    const simulado = usarFetch(() => new Response('%PDF-demo', {
+      status: 200,
+      headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': 'attachment; filename="libro-12-1-2026-01.pdf"' },
+    }))
+    const archivo = await p.cliente.solicitarArchivo('/libros/12-1?anio=2026&mes=1&formato=pdf')
+    const [url, init] = simulado.mock.calls[0]
+    expect(url).toBe('/api/inventario/v1/libros/12-1?anio=2026&mes=1&formato=pdf')
+    expect(autorizacion(init)).toBe('Bearer token-demo')
+    expect(new Headers(init?.headers).get('Accept')).toBe('*/*')
+    expect(archivo.contentDisposition).toBe('attachment; filename="libro-12-1-2026-01.pdf"')
+    expect(await archivo.blob.text()).toBe('%PDF-demo')
+  })
+
+  it('un error de la descarga llega como ErrorApi con su código (409 PERIODO_NO_CERRADO, 429 sin cuerpo)', async () => {
+    const p = await abrirPestana()
+    p.sesion.establecerSesion('token-demo', usuarioDemo())
+    usarFetch(() => respuestaJson({ codigo: 'PERIODO_NO_CERRADO', mensaje: 'x' }, 409))
+    await expect(p.cliente.solicitarArchivo('/libros/12-1?anio=2026&mes=1&formato=pdf')).rejects.toMatchObject({ status: 409, codigo: 'PERIODO_NO_CERRADO' })
+    usarFetch(() => new Response('', { status: 429 }))
+    await expect(p.cliente.solicitarArchivo('/reportes/toneladas?anio=2026&formato=xlsx')).rejects.toMatchObject({ status: 429, codigo: 'DEMASIADAS_SOLICITUDES' })
+  })
+})

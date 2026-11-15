@@ -121,9 +121,9 @@ Roles: **A** ADMIN · **C** CONTADOR · **S** ASISTENTE · **Q** CONSULTA · "to
 | POST | `/periodos/:anio/:mes/cerrar` · `/reabrir` (`{motivo}`) | A, C | Periodos |
 | POST | `/periodos/cerrar-en-bloque` | A | Periodos |
 | GET / POST | `/periodos/:anio/cierre-anual/vista-previa` · `/periodos/:anio/cierre-anual` (`{confirmarReemplazo}`) | A, C | Cierre anual |
-| GET / PUT | `/saldos-iniciales?anio` · `/saldos-iniciales/:id` | todos / A, C | Saldos iniciales |
+| GET / POST / PUT | `/saldos-iniciales?anio` · `/saldos-iniciales` · `/saldos-iniciales/:id` | todos / A, C / A, C | Saldos iniciales |
 | GET | `/libros/12-1?anio&mes&productoId&formato=json\|pdf` | todos | Libro 12.1 |
-| GET | `/libros/12-1/prueba-margenes?formato=pdf` | A, C | Libro 12.1 |
+| GET | `/libros/12-1/prueba-margenes` (sin parámetros) | A, C | Libro 12.1 |
 | GET / POST | `/libros/12-1/impresiones` | todos / A, C | Libro 12.1, Periodos |
 | GET | `/libros/13-1?anio&mes&productoId&detallado&formato=json\|pdf\|xlsx` | todos | Libro 13.1, Kardex |
 | GET | `/reportes/toneladas` · `/costo-ventas` · `/resumen-anual` · `/margen` (`?anio&formato`) | todos | Reportes |
@@ -225,7 +225,7 @@ Los pendientes del S8 para la API quedaron resueltos en el S9: `ComprobanteDto.c
 
 ### 6.4 Kardex, periodos y saldos iniciales (S9)
 
-Módulos `src/api/kardex.ts`, `src/api/periodos.ts` y `src/api/saldos-iniciales.ts`; pantallas en `src/funcionalidades/kardex/`, `periodos/` y `saldos-iniciales/`. La web **no calcula** costos, saldos ni diferencias: muestra lo que entrega la API, formateado con big.js (`lib/formato.ts`). Permisos en `lib/roles.ts`: `kardex:reordenar` (A, C), `kardex:recalcular` (A), `periodos:cerrar` (A, C; también reabrir), `periodos:cerrar-en-bloque` (A), `periodos:cierre-anual` (A, C) y `saldos:editar` (A, C).
+Módulos `src/api/kardex.ts`, `src/api/periodos.ts` y `src/api/saldos-iniciales.ts`; pantallas en `src/funcionalidades/kardex/`, `periodos/` y `saldos-iniciales/`. La web **no calcula** costos, saldos ni diferencias: muestra lo que entrega la API, formateado con big.js (`lib/formato.ts`). Permisos en `lib/roles.ts`: `kardex:reordenar` (A, C), `kardex:recalcular` (A), `periodos:cerrar` (A, C; también reabrir), `periodos:cerrar-en-bloque` (A), `periodos:cierre-anual` (A, C) y `saldos:editar` (A, C; editar y crear un saldo manual).
 
 | Llamada | Cuerpo / respuesta | Pantalla |
 |---|---|---|
@@ -233,16 +233,17 @@ Módulos `src/api/kardex.ts`, `src/api/periodos.ts` y `src/api/saldos-iniciales.
 | `GET /kardex/alertas?anio` | `{anio, totales, alertas[]}` (tipo, producto, movimiento, fecha, documento, mensaje) | Kardex (aviso superior con enlace `#fila-<movimientoId>`), Periodos (saldos negativos del mes antes de cerrar) |
 | `POST /kardex/recalcular` | `{anio, productoId?}` → `{filas, filasCambiadas, saldosDesactualizados[]}` | Kardex (A), para el producto y año elegidos |
 | `POST /movimientos/:id/mover` | `{direccion: "ARRIBA"\|"ABAJO", confirmarStockNegativo?}` → `{comprobante, kardex}` | Kardex (A, C): ↑/↓ solo entre filas de la misma fecha y en meses no cerrados, con confirmación |
-| `GET /periodos?anio` | `{anio, meses[12], anioCompletoCerrado}`; cada mes: `estado` (`ABIERTO`, `CERRADO`, `SIN_PERIODO`), `cerradoEn`/`cerradoPor`, `versionCierre`, `tieneMovimientos`, `libroImpreso`, `asientosExportados[]` | Periodos, chip de la barra superior, aviso de mes cerrado en los formularios |
+| `GET /periodos?anio` | `{anio, meses[12], anioCompletoCerrado}`; cada mes: `estado` (`ABIERTO`, `CERRADO`, `SIN_PERIODO`), `cerradoEn`/`cerradoPor`, `versionCierre`, `movimientos`, `comprasTn`, `ventasTn`, `porProducto[]` (por producto: movimientos y TN), `libro121` (`{estado: PENDIENTE\|IMPRESO\|DESACTUALIZADO, impresoEn}`) y `asiento` (`{estado: PENDIENTE}` hasta el S11). `libroImpreso` está obsoleto (se quita en el S13): **la web ya no lo usa** | Periodos (tarjetas con movimientos, TN y estado del libro con enlace al 12.1), chip de la barra superior, aviso de mes cerrado en los formularios, estado del mes en el Libro 12.1 |
 | `POST /periodos/:anio/:mes/cerrar` | sin cuerpo → `{periodo, cierres, saldosNegativos[], diferenciasConCierreAnterior[]}` | Periodos (A, C) |
 | `POST /periodos/:anio/:mes/reabrir` | `{motivo}` (obligatorio, hasta 500) → `{periodo, advertencias[]}` | Periodos (A, C), solo el último mes cerrado |
 | `POST /periodos/cerrar-en-bloque` | `{desde: "AAAA-MM", hasta: "AAAA-MM"}` → `{cierres[]}` | Periodos (A) |
 | `GET /periodos/:anio/cierre-anual/vista-previa` | `{mesesAbiertos[], requiereConfirmacion, saldos[]}`; cada saldo: `saldoFinal`, `propuesto` (4 y 2 decimales), `existente`, `comparacion`, `diferencia` (propuesto − existente) y `accion` | Cierre anual, pasos 1 y 2 |
 | `POST /periodos/:anio/cierre-anual` | `{confirmarReemplazo? \| conservarExistentes?, confirmarStockNegativo?}` (no los dos primeros a la vez) → vista + `kardexRecalculados` | Cierre anual, paso 3 |
-| `GET /saldos-iniciales?anio` | `SaldoInicialDto[]`: cantidad, costo total, origen (`IMPORTACION`, `CIERRE_ANUAL`, `MANUAL`), motivo, desactualizado, registrado por | Saldos iniciales (sin C.U.: la API no lo entrega) |
+| `GET /saldos-iniciales?anio` | `SaldoInicialDto[]`: cantidad, costo total, `costoUnitario` (exacto, calculado en la API), origen (`IMPORTACION`, `CIERRE_ANUAL`, `MANUAL`), motivo, desactualizado, registrado por | Saldos iniciales (columna C.U. con 2 decimales) |
+| `POST /saldos-iniciales` | `{anio, productoId, cantidad (≤ 4 dec.), costoTotal (≤ 10 dec.), motivo, establecimientoId?, confirmarStockNegativo?}` → el saldo `MANUAL` | Saldos iniciales (A, C): «Nuevo saldo manual», solo productos sin saldo en el año |
 | `PUT /saldos-iniciales/:id` | `{cantidad (≤ 4 dec.), costoTotal (≤ 10 dec.), motivo, confirmarStockNegativo?}` → el saldo, ahora `MANUAL` | Saldos iniciales (A, C). Solo edita uno existente |
 
-Después de cerrar, reabrir, cerrar en bloque, cierre anual, saldo manual, reordenar o recalcular se invalidan kardex, alertas, periodos, saldos iniciales, comprobantes, stock y dashboard.
+Después de cerrar, reabrir, cerrar en bloque, cierre anual, saldo manual, reordenar o recalcular se invalidan kardex, alertas, periodos, saldos iniciales, comprobantes, stock, dashboard, libro 12.1 y reportes (`invalidarTrasEscritura`).
 
 **Dónde se muestra cada error:**
 
@@ -250,14 +251,45 @@ Después de cerrar, reabrir, cerrar en bloque, cierre anual, saldo manual, reord
 |---|---|
 | 409 `PERIODO_ANTERIOR_ABIERTO` · `PERIODO_POSTERIOR_CERRADO` · `PERIODO_CERRADO` | dentro del diálogo de cerrar / reabrir (mensajes de UI-UX §6) |
 | 422 `PERIODO_FUTURO` · `PERIODO_ANTERIOR_AL_INICIO` · 409 `PERIODO_NO_CERRADO` | dentro del diálogo de cerrar, cerrar en bloque o reabrir, con su mensaje |
-| 409 `CIERRE_CON_SALDO_CERO_CON_COSTO` | el diálogo sigue abierto, con el mensaje del mes y la **lista de movimientos** con enlace al kardex. Se lee `detalle.movimientos[]` (o `filas[]`) con `movimientoId`, `productoId`/`productoCodigo` y `fecha`; si no viene, se usan las alertas `SALDO_CERO_CON_COSTO` del mes |
+| 409 `CIERRE_CON_SALDO_CERO_CON_COSTO` | el diálogo sigue abierto, con el mensaje del mes y la **lista de movimientos** con enlace al kardex. Desde el S10 el detalle está tipado (`ErrorSaldoCeroDto`: `detalle.periodo` y `detalle.movimientos[]` con `movimientoId`, `productoId`, `productoCodigo`, `fecha`, `orden` y `saldoCosto`); si no viene, se usan las alertas `SALDO_CERO_CON_COSTO` del mes |
+| 409 `SALDO_INICIAL_YA_EXISTE` (POST de saldo inicial) | junto al producto: "Ya existe un saldo inicial de {producto} para {año}. Edítalo desde la tabla." y se recarga la tabla |
 | 409 `SALDO_INICIAL_REQUIERE_CONFIRMACION` | el asistente vuelve al paso 2 con el mensaje y recarga la vista previa |
 | 409 `CIERRE_ANUAL_INCOMPLETO` | el asistente vuelve al paso 1 |
-| 409 `STOCK_NEGATIVO_REQUIERE_CONFIRMACION` | `DialogoStockNegativo` y reenvío con `confirmarStockNegativo: true` (mover, cierre anual y saldo manual) |
+| 409 `STOCK_NEGATIVO_REQUIERE_CONFIRMACION` | `DialogoStockNegativo` y reenvío con `confirmarStockNegativo: true` (mover, cierre anual y saldo manual nuevo o editado) |
 | 409 `ORDEN_EN_CONFLICTO` · `CONFLICTO_CONCURRENTE` | `AvisoConflicto` con **Reintentar** que recarga y no reenvía |
 | 422 `REORDEN_FUERA_DE_FECHA` · 409 `COMPROBANTE_ANULADO` al mover | aviso (toast persistente) |
 
-Pendientes del contrato para la API (Sprint 10): ver `docs/AVANCE.md` (S09 → Pendientes para la API).
+Pendientes del contrato para la API (Sprint 11): ver `docs/AVANCE.md` (S10 → Pendientes para la API).
+
+### 6.5 Libros, reportes y descargas (S10)
+
+Módulos `src/api/libros.ts`, `src/api/reportes.ts` y `src/api/descargas.ts`; pantallas en `src/funcionalidades/libros/` y `reportes/`. La web **no calcula** nada: la vista previa del 12.1 muestra las cifras tal como llegan (ya redondeadas como se imprimen) y los reportes se formatean con big.js. Permisos: `libros:registrar-impresion`, `libros:prueba-margenes`, `libros:13-1-detallado` (D-33) y `reportes:excel-contadora`, los cuatro A y C.
+
+| Llamada | Cuerpo / respuesta | Pantalla |
+|---|---|---|
+| `GET /libros/12-1?anio&mes?&productoId?` | `Libro121Dto`: `modo` (`AGRUPADO`/`DETALLADO`) y `bloques[]` (uno por mes y producto: cabecera, saldo inicial, filas, totales, saldo final). Sin `mes`: año completo; sin `productoId`: todos | Libro 12.1 (vista previa tipo hoja A4) |
+| `GET /libros/12-1?…&formato=pdf` | PDF A4 horizontal sin folio | Libro 12.1 «Descargar PDF» (todos) |
+| `GET /libros/12-1/prueba-margenes` | PDF de una página (área imprimible y zona del sello) | Libro 12.1 (A, C) |
+| `GET /libros/12-1/impresiones?anio` | `{impresiones[], meses[12]}`: estado por mes (`PENDIENTE`, `IMPRESO`, `DESACTUALIZADO`, `impresoEn`) e historial (`impresoEn`, `impresoPor`, `observacion`, `vigente`, `reimpresion`) | Libro 12.1 (estado del mes e impresiones registradas) |
+| `POST /libros/12-1/impresiones` | `{anio, mes, observacion?}` → la impresión. Sin fecha: la pone el servidor (`impresoEn`). Solo meses `CERRADOS` | Libro 12.1 «Registrar impresión» (A, C). Luego se invalidan periodos y libro 12.1 |
+| `GET /libros/13-1?anio&mes?&productoId?&detallado?&formato=pdf\|xlsx` | PDF o Excel del 13.1. `detallado=true` solo A y C (ASISTENTE y CONSULTA → 403): la web no lo envía para otros roles | Libro 13.1 y botones «PDF 13.1» y «Excel» del Kardex (mismos filtros) |
+| `GET /reportes/toneladas?anio&formato?` | `ToneladasDto`: por producto, `meses[]` y `total` (SI, compras, otras entradas, ventas, mermas, desmedros, otras salidas, SF en TN) y el bloque `enToneladas` | Toneladas |
+| `GET /reportes/costo-ventas?anio&formato?` | `CostoVentasDto`: por producto y `resumen`, cada mes con `costoVentas` (01 + 17), `mermas` y `totalSalidasValorizadas` | Costo de ventas |
+| `GET /reportes/resumen-anual?anio&formato?` | `ResumenAnualDto`: por producto y `total`, inventario inicial, compras, inventario final, costo de ventas, mermas… (TN y S/) y `totalSalidasValorizadas` | Resumen anual (conceptos × productos + TOTAL) |
+| `GET /reportes/margen?anio&formato?` | `MargenDto`: por producto y `total`, ventas TN y S/, costo de ventas, `margen`, `porcentaje` (null sin ventas con precio) y `sinPrecio` aparte | Margen (tablas y gráfico de barras) |
+| `GET /reportes/excel-contadora?anio` | `.xlsx` con las hojas de la contadora (valores, no fórmulas) | Excel contadora (A, C) |
+
+**Descargas** (`BotonDescarga` → `descargarArchivo` → `solicitarArchivo` de `api/cliente.ts`): el mismo cliente (token en memoria, refresh, un reintento tras 401 y "Despertando el servidor…"), `Accept: */*` y 120 s por intento. El archivo se guarda con el nombre de `Content-Disposition` (`filename*` UTF-8 o `filename`); si no viene, con un nombre por defecto. Mientras se genera el botón dice "Generando…" (`aria-busy`). Errores (toast que no se cierra solo):
+
+| Error | Mensaje |
+|---|---|
+| 403 `SIN_PERMISO` | No tienes permiso para descargar este archivo. |
+| 409 `PERIODO_NO_CERRADO` | Ese mes aún no está cerrado: el archivo se genera después de cerrarlo en Periodos. |
+| 429 (cualquier código) | Llegaste al límite de descargas por minuto. Espera un momento y vuelve a intentarlo. |
+| otro | el de UI-UX §6 según el `codigo` |
+
+**Pendiente en el OpenAPI** (anotado para la API del Sprint 11 en `docs/AVANCE.md`): el 429 de las descargas de `/libros` y `/reportes`, el rol de `GET /libros/12-1/prueba-margenes` y el 409 `PERIODO_NO_CERRADO` de la descarga del 12.1 si la API lo devuelve.
+
 
 ## 7. Ejemplos (datos de demostración)
 

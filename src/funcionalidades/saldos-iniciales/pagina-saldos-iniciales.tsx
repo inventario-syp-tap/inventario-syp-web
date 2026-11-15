@@ -1,9 +1,10 @@
-// Saldos iniciales (docs/UI-UX.md §5.10): tabla por año y producto con cantidad, total, origen (Importación, Cierre
-// anual, Manual) y la marca ⚠ "Desactualizado". Todos ven; A y C editan un saldo como manual (motivo obligatorio).
-// Sin columna C.U.: SaldoInicialDto no la trae y dividir aquí sería calcular (pendiente para la API del S10).
+// Saldos iniciales (docs/UI-UX.md §5.10): tabla por año y producto con cantidad, C.U. (costoUnitario de la API),
+// total, origen (Importación, Cierre anual, Manual) y la marca ⚠ "Desactualizado". Todos ven; A y C editan un saldo
+// como manual y crean uno nuevo para un producto sin saldo en el año (motivo obligatorio en ambos casos).
 import { useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import { PencilIcon } from 'lucide-react'
+import { PencilIcon, PlusIcon } from 'lucide-react'
+import { DialogoNuevoSaldo } from './dialogo-nuevo-saldo'
 import { DialogoSaldoInicial } from './dialogo-saldo-inicial'
 import { textoProducto, useProductos } from '@/api/productos'
 import { NOMBRE_ORIGEN, useSaldosIniciales, type SaldoInicial } from '@/api/saldos-iniciales'
@@ -33,6 +34,12 @@ export function PaginaSaldosIniciales() {
   const puedeCierreAnual = usePuede('periodos:cierre-anual')
   const editar = useDialogo<SaldoInicial>()
   const { abrir } = editar
+  const nuevo = useDialogo()
+  // Solo los productos activos sin saldo inicial en el año (los que ya tienen, se editan desde la tabla).
+  const sinSaldo = useMemo(() => {
+    const conSaldo = new Set((saldos.data ?? []).map((s) => s.productoId))
+    return (productos.data ?? []).filter((p) => p.activo && !conSaldo.has(p.id))
+  }, [productos.data, saldos.data])
 
   const nombre = useMemo(() => {
     const lista = productos.data ?? []
@@ -45,6 +52,7 @@ export function PaginaSaldosIniciales() {
   const columnas = useMemo<ColumnaTabla<SaldoInicial>[]>(() => [
     { id: 'producto', encabezado: 'Producto', valor: (s) => nombre(s) },
     { id: 'cantidad', encabezado: 'Cantidad TN', numerica: true, celda: (s) => <Cifra tipo="toneladas" valor={s.cantidad} /> },
+    { id: 'cu', encabezado: 'C.U.', numerica: true, celda: (s) => <Cifra tipo="cu" valor={s.costoUnitario} /> },
     { id: 'total', encabezado: 'Total S/', numerica: true, celda: (s) => <Cifra tipo="importe" valor={s.costoTotal} /> },
     { id: 'origen', encabezado: 'Origen', valor: (s) => NOMBRE_ORIGEN[s.origen] },
     {
@@ -91,6 +99,19 @@ export function PaginaSaldosIniciales() {
       <EncabezadoPagina
         titulo="Saldos iniciales"
         descripcion="Saldo al 1 de enero de cada año por producto. Normalmente lo genera el cierre anual del año anterior."
+        acciones={puedeEditar && (
+          <div className="flex flex-col items-end gap-1">
+            <Button type="button" disabled={!saldos.data || !productos.data || sinSaldo.length === 0}
+              aria-describedby={saldos.data && productos.data && sinSaldo.length === 0 ? 'ayuda-nuevo-saldo' : undefined}
+              onClick={(e) => nuevo.abrir(undefined, e.currentTarget)}>
+              <PlusIcon aria-hidden="true" />
+              Nuevo saldo manual
+            </Button>
+            {saldos.data && productos.data && sinSaldo.length === 0 && (
+              <p id="ayuda-nuevo-saldo" className="text-xs text-muted-foreground">Todos los productos ya tienen saldo en {anio}.</p>
+            )}
+          </div>
+        )}
       />
       <SelectorPeriodo anio={anio} alCambiarAnio={(nuevo) => setParametros({ anio: String(nuevo) }, { replace: true })} />
       {saldos.isError ? (
@@ -113,6 +134,10 @@ export function PaginaSaldosIniciales() {
             </span>
           )}
         />
+      )}
+      {nuevo.apertura > 0 && (
+        <DialogoNuevoSaldo key={`${nuevo.apertura}-${anio}`} anio={anio} productos={sinSaldo}
+          abierto={nuevo.abierto} alCambiarAbierto={nuevo.cambiarAbierto} focoAlCerrar={nuevo.disparador} />
       )}
       {editar.datos && (
         <DialogoSaldoInicial key={editar.apertura} saldo={editar.datos} producto={nombre(editar.datos)}

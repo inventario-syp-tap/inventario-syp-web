@@ -26,6 +26,33 @@ export function conSigno(valor: string | null | undefined, decimales: number): s
   return texto === '—' || texto.startsWith('-') || !/[1-9]/.test(texto) ? texto : `+${texto}`
 }
 
+/**
+ * Nombre en español de cada total del cierre (claves de TotalesCierreDto). La API manda el campo como dato
+ * estructurado en `diferenciasConCierreAnterior[].campo`: solo se traduce la clave, no se analiza ningún texto.
+ */
+export const NOMBRE_CAMPO_CIERRE: Readonly<Record<string, string>> = {
+  siCantidad: 'saldo inicial TN',
+  siCosto: 'saldo inicial S/',
+  comprasCantidad: 'compras TN',
+  comprasCosto: 'compras S/',
+  otrasEntradasCantidad: 'otras entradas TN',
+  otrasEntradasCosto: 'otras entradas S/',
+  ventasCantidad: 'ventas TN',
+  costoVentas: 'costo de ventas S/',
+  mermasCantidad: 'mermas TN',
+  mermasCosto: 'mermas S/',
+  desmedrosCantidad: 'desmedros TN',
+  desmedrosCosto: 'desmedros S/',
+  otrasSalidasCantidad: 'otras salidas TN',
+  otrasSalidasCosto: 'otras salidas S/',
+  sfCantidad: 'saldo final TN',
+  sfCosto: 'saldo final S/',
+}
+
+/** Nombre en español del campo; uno que no esté en la tabla se muestra tal cual (no se oculta). */
+export const nombreCampoCierre = (campo: string) =>
+  Object.hasOwn(NOMBRE_CAMPO_CIERRE, campo) ? NOMBRE_CAMPO_CIERRE[campo] : campo
+
 /** El decimal (texto) es negativo; solo mira el signo, no convierte a number. */
 export const negativo = (valor: string | null | undefined) => {
   const texto = (valor ?? '').trim()

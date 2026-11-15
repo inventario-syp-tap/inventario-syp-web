@@ -48,6 +48,11 @@ export const PERMISOS = {
   'periodos:cerrar-en-bloque': SOLO_A,
   'periodos:cierre-anual': A_C,
   'saldos:editar': A_C,
+  'libros:registrar-impresion': A_C,
+  'libros:prueba-margenes': A_C,
+  /** 13.1 detallado (RUC, razón social y descripción): D-33, Ley 29733. */
+  'libros:13-1-detallado': A_C,
+  'reportes:excel-contadora': A_C,
 } as const satisfies Record<string, readonly Rol[]>
 
 export type Accion = keyof typeof PERMISOS

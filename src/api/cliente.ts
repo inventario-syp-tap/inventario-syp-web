@@ -296,6 +296,29 @@ export async function solicitar<T>(ruta: string, opciones: OpcionesSolicitud = {
   return leer<T>(await ejecutar(ruta, opciones))
 }
 
+/** Archivo de la API (PDF o Excel) tal como llega, con el encabezado Content-Disposition para el nombre. */
+export type ArchivoApi = { blob: Blob; contentDisposition: string | null; tipo: string | null }
+
+/** Tiempo por intento al generar un archivo (un PDF o Excel del año completo puede tardar). */
+export const TIEMPO_DESCARGA_MS = 120_000
+
+/**
+ * Descarga un archivo (GET) con las mismas reglas que `solicitar`: token, refresh, un reintento tras 401 y
+ * "Despertando el servidor…". Los errores llegan igual como ErrorApi (la API responde JSON aunque se pida un PDF).
+ */
+export async function solicitarArchivo(ruta: string, opciones: Omit<OpcionesSolicitud, 'metodo' | 'cuerpo'> = {}): Promise<ArchivoApi> {
+  const respuesta = await ejecutar(ruta, {
+    tiempoMs: TIEMPO_DESCARGA_MS,
+    ...opciones,
+    encabezados: { Accept: '*/*', ...opciones.encabezados },
+  })
+  return {
+    blob: await respuesta.blob(),
+    contentDisposition: respuesta.headers.get('Content-Disposition'),
+    tipo: respuesta.headers.get('Content-Type'),
+  }
+}
+
 /** Avisa a las demás pestañas que esta cerró sesión (sin datos). */
 export function avisarLogoutAPestanas() {
   obtenerCoordinador().avisarLogout()

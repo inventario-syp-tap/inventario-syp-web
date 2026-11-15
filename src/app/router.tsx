@@ -7,8 +7,8 @@ import { PaginaNoEncontrada } from './pagina-no-encontrada'
 import { INICIO, PAGINAS_DEL_MODULO, RAIZ_MODULO } from './paginas'
 import {
   CargandoPantalla, PaginaAjuste, PaginaCierreAnual, PaginaCompra, PaginaComprobantes, PaginaConfiguracion,
-  PaginaDetalleComprobante, PaginaEstablecimientos, PaginaKardex, PaginaMerma, PaginaPeriodos, PaginaProductos, PaginaReglas,
-  PaginaSaldosIniciales, PaginaTerceros, PaginaUsuarios, PaginaVenta,
+  PaginaDetalleComprobante, PaginaEstablecimientos, PaginaExcelContadora, PaginaKardex, PaginaLibro121, PaginaLibro131, PaginaMerma,
+  PaginaPeriodos, PaginaProductos, PaginaReglas, PaginaReporte, PaginaSaldosIniciales, PaginaTerceros, PaginaUsuarios, PaginaVenta,
 } from './pantallas-diferidas'
 import { RaizApp } from './raiz-app'
 import { RutaProtegida } from './ruta-protegida'
@@ -41,6 +41,14 @@ const PANTALLAS: Record<string, ReactNode> = {
   [`${RAIZ_MODULO}/periodos`]: diferida(<PaginaPeriodos />),
   [`${RAIZ_MODULO}/periodos/cierre-anual`]: diferida(<PaginaCierreAnual />),
   [`${RAIZ_MODULO}/saldos-iniciales`]: diferida(<PaginaSaldosIniciales />),
+  [`${RAIZ_MODULO}/libros/12-1`]: diferida(<PaginaLibro121 />),
+  [`${RAIZ_MODULO}/libros/13-1`]: diferida(<PaginaLibro131 />),
+  // /reportes/:reporte: una ruta por reporte (las del menú); otra cualquiera cae en "Página no encontrada".
+  [`${RAIZ_MODULO}/reportes/toneladas`]: diferida(<PaginaReporte key="toneladas" tipo="toneladas" />),
+  [`${RAIZ_MODULO}/reportes/costo-ventas`]: diferida(<PaginaReporte key="costo-ventas" tipo="costo-ventas" />),
+  [`${RAIZ_MODULO}/reportes/resumen-anual`]: diferida(<PaginaReporte key="resumen-anual" tipo="resumen-anual" />),
+  [`${RAIZ_MODULO}/reportes/margen`]: diferida(<PaginaReporte key="margen" tipo="margen" />),
+  [`${RAIZ_MODULO}/reportes/excel-contadora`]: diferida(<PaginaExcelContadora />),
 }
 
 export const rutas: RouteObject[] = [
