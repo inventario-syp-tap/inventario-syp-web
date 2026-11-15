@@ -126,7 +126,7 @@ export function PaginaComprobantes() {
                 <EyeIcon aria-hidden="true" />
                 Ver
               </Button>
-              {puedeEditarComprobante(c, roles) && (
+              {puedeEditarComprobante(c, roles, usuario?.id) && (
                 <Button type="button" variant="ghost" size="sm" aria-label={`Editar ${documento}`}
                   onClick={() => void navegar(`${RAIZ_MODULO}/comprobantes/${encodeURIComponent(c.id)}?editar=1`)}>
                   <PencilIcon aria-hidden="true" />
@@ -145,7 +145,7 @@ export function PaginaComprobantes() {
         },
       },
     ]
-  }, [roles, puedeAnular, abrirPanel, abrirAnular, navegar])
+  }, [roles, usuario?.id, puedeAnular, abrirPanel, abrirAnular, navegar])
 
   return (
     <div className="flex flex-col gap-4">

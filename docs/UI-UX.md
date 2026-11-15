@@ -140,7 +140,8 @@ Menú lateral (240 px, plegable a íconos):
 | `SelectorTercero` | combobox (command) que busca por documento o razón social (`GET /terceros?q=`), muestra tipo y número en `font-mono`, botón "+ Nuevo" con validación de RUC en vivo |
 | `SelectorProducto` | chips o select con el punto de color del producto |
 | `SelectorPeriodo` | año + mes ("Todo el año" opcional) |
-| `ChipEstadoPeriodo` | Abierto (borde) / Cerrado (✓ `success`) con texto |
+| `ChipEstadoPeriodo` | Abierto (borde) / Cerrado (✓ `success`) / Sin periodo (borde punteado), siempre con ícono y texto |
+| `AvisoConflicto` | ante 409 `ORDEN_EN_CONFLICTO` o `CONFLICTO_CONCURRENTE`: "Otro usuario modificó estos datos al mismo tiempo." con **Reintentar**, que vuelve a cargar los datos y nunca reenvía la petición |
 | `IconoAlerta` | STOCK_NEGATIVO ⛔, FECHA_FUERA_DE_ORDEN ↕, SALDO_CERO_CON_COSTO ⚠, SI desactualizado ⚠: ícono + tooltip + texto para lectores de pantalla |
 | `DialogoConfirmacion` | alert-dialog que repite el efecto ("Se anulará F001-0000123 y se recalculará el kardex de FIERRO 2026") con motivo opcional u obligatorio |
 | `DialogoStockNegativo` | ante 409 `STOCK_NEGATIVO_REQUIERE_CONFIRMACION`: producto, fecha, disponible antes, saldo resultante; "Registrar de todos modos" reenvía con `confirmarStockNegativo: true` |
@@ -225,10 +226,10 @@ Producto ( ● FIERRO | ● INOX | ● COBRE )  Año [2026 ▾]  Mes [Marzo ▾ 
 - (Valores ilustrativos.)
 
 ### 5.9 Periodos (S9)
-Doce tarjetas por año: mes, estado, movimientos, compras y ventas (TN), libro 12.1 (impreso / pendiente / desactualizado) y asiento (exportado / pendiente / desactualizado). **Cerrar mes** (solo si el anterior está cerrado): diálogo con advertencias (saldos negativos listados, no bloquean). Si hay movimientos con saldo cero y costo, la API rechaza el cierre (`CIERRE_CON_SALDO_CERO_CON_COSTO`) y la pantalla lista esos movimientos con enlace al kardex. **Reabrir** (solo el último cerrado): motivo obligatorio. ADMIN: **Cerrar en bloque** (desde–hasta).
+Doce tarjetas por año: mes, estado, movimientos, compras y ventas (TN), libro 12.1 (impreso / pendiente / desactualizado) y asiento (exportado / pendiente / desactualizado). **Cerrar mes** (solo si el anterior está cerrado): diálogo con advertencias (saldos negativos listados desde `GET /kardex/alertas`, no bloquean; después del cierre, los que devuelve la API). Si hay movimientos con saldo cero y costo, la API rechaza el cierre (`CIERRE_CON_SALDO_CERO_CON_COSTO`) y la pantalla lista esos movimientos con enlace al kardex. **Reabrir** (solo el último cerrado): motivo obligatorio. ADMIN: **Cerrar en bloque** (desde–hasta).
 
 ### 5.10 Cierre anual y saldos iniciales (S9)
-Asistente de 3 pasos: (1) verificación de los 12 meses cerrados; (2) saldo inicial propuesto del año siguiente vs el existente, diferencias resaltadas con signo (p. ej. `+0.01`); (3) confirmación explícita ("Reemplazar el saldo inicial existente"). **Saldos iniciales**: tabla por año y producto con origen (Importación, Cierre anual, Manual) y la marca ⚠ "desactualizado"; editar un SI MANUAL exige motivo.
+Asistente de 3 pasos: (1) verificación de los 12 meses cerrados; (2) saldo inicial propuesto del año siguiente vs el existente, diferencias resaltadas con signo (p. ej. `+0.01`); (3) confirmación explícita ("Reemplazar el saldo inicial existente" o "Conservar los existentes", y la confirmación de stock negativo si corresponde). **Saldos iniciales**: tabla por año y producto con origen (Importación, Cierre anual, Manual) y la marca ⚠ "desactualizado"; editar un SI MANUAL exige motivo.
 
 ### 5.11 Libro 12.1 — unidades físicas (S10)
 ```
@@ -326,7 +327,7 @@ Dos tarjetas: **Descargar respaldo completo** (`.dump`, para restaurar con `pg_r
 | `PERIODO_POSTERIOR_CERRADO` | Solo se puede reabrir el último mes cerrado. |
 | `STOCK_NEGATIVO_REQUIERE_CONFIRMACION` | (diálogo) Esta salida deja {producto} en {saldo} TN al {fecha}. ¿Registrar de todos modos? |
 | `STOCK_INSUFICIENTE` | No hay stock suficiente de {producto} al {fecha} (disponible {disponible} TN). (Política BLOQUEAR: sin opción de confirmar) |
-| `ORDEN_EN_CONFLICTO` | Otro usuario modificó este kardex al mismo tiempo; vuelve a intentarlo. (Con botón **Reintentar**, que reenvía lo mismo) |
+| `ORDEN_EN_CONFLICTO` · `CONFLICTO_CONCURRENTE` | Otro usuario modificó estos datos al mismo tiempo. (`AvisoConflicto` con botón **Reintentar**, que vuelve a cargar los datos sin reenviar; desde el S9) |
 | `COMPROBANTE_DUPLICADO` | Ya existe {tipo} {serie}-{número} de este tercero. (Junto al Número: "Ya existe la factura F001-0000123 de este proveedor.") |
 | `RUC_INVALIDO` / `DOCUMENTO_INVALIDO` | El RUC no es válido (revisa los 11 dígitos) / El documento no tiene el formato correcto. |
 | `SUSTENTO_REQUERIDO` | Indica el sustento (informe técnico o acta). |
@@ -335,6 +336,9 @@ Dos tarjetas: **Descargar respaldo completo** (`.dump`, para restaurar con `pg_r
 | `SALDO_INICIAL_INEXISTENTE` | Falta el saldo inicial de {año}: haz el cierre anual de {año−1}. |
 | `CIERRE_ANUAL_INCOMPLETO` | Cierra los 12 meses antes del cierre anual. |
 | `CIERRE_CON_SALDO_CERO_CON_COSTO` | No se puede cerrar {mes}: hay movimientos con saldo cero y costo. Revísalos en el kardex (lista abajo). |
+| `PERIODO_FUTURO` | Ese mes aún no llega: no se puede cerrar un mes posterior al mes en curso. |
+| `PERIODO_ANTERIOR_AL_INICIO` | Ese mes es anterior al primer periodo registrado en el sistema: no hay nada que cerrar. |
+| `PERIODO_NO_CERRADO` | Ese mes no está cerrado: no hay nada que reabrir. |
 | `VIGENCIA_SUPERPUESTA` | Ya existe una regla vigente en esas fechas para el mismo tipo, producto y operación. Cierra la anterior con "vigente hasta". |
 | `VIGENCIA_INVALIDA` | La vigencia no es válida: usa AAAA-MM y que "vigente hasta" no sea anterior a "vigente desde". |
 | `OPERACION_NO_CORRESPONDE` | La operación no corresponde al tipo de asiento (costo de ventas: 01 o 17 · merma: 13 · desmedro: 14 · ajustes: 28). |
@@ -347,7 +351,7 @@ Dos tarjetas: **Descargar respaldo completo** (`.dump`, para restaurar con `pg_r
 | `TERCERO_PROTEGIDO` | "CLIENTES VARIOS" no puede cambiar de documento ni de nombre. |
 | `PRODUCTO_DUPLICADO` | Ya existe un producto con ese código. |
 | `ESTABLECIMIENTO_DUPLICADO` | Ya existe un establecimiento con ese código. |
-| `SALDO_INICIAL_REQUIERE_CONFIRMACION` | (paso 3 del asistente) El saldo inicial de {año+1} ya existe y es distinto. ¿Reemplazarlo? |
+| `SALDO_INICIAL_REQUIERE_CONFIRMACION` | El saldo inicial de {año+1} ya existe y es distinto. Elige si lo reemplazas o lo conservas. (El asistente vuelve al paso 2) |
 | `COMPROBANTE_ANULADO` | Ese comprobante está anulado: ya no se puede editar ni mover. |
 | `REORDEN_FUERA_DE_FECHA` | Solo se puede mover dentro de la misma fecha. |
 | `HISTORICO_YA_CARGADO` | El histórico 2024–2026 ya está cargado en esta base. |

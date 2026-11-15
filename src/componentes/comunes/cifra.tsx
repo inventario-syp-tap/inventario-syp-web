@@ -2,14 +2,16 @@
 // con signo menos, ícono y el texto "negativo" para lectores de pantalla (nada solo por color).
 import { OctagonXIcon } from 'lucide-react'
 import { cn } from 'cn'
-import { formatearCU, formatearSoles, formatearToneladas } from '@/lib/formato'
+import { formatearCU, formatearDecimal, formatearSoles, formatearToneladas } from '@/lib/formato'
 
-type Tipo = 'toneladas' | 'soles' | 'cu'
+/** importe: 2 decimales sin "S/" (columnas de tablas tipo Excel con la moneda en el encabezado). */
+type Tipo = 'toneladas' | 'soles' | 'cu' | 'importe'
 
 const FORMATO: Record<Tipo, (valor: string) => string> = {
   toneladas: formatearToneladas,
   soles: formatearSoles,
   cu: (valor) => formatearCU(valor),
+  importe: (valor) => formatearDecimal(valor, 2),
 }
 
 export function Cifra({ valor, tipo, className }: { valor: string | null | undefined; tipo: Tipo; className?: string }) {

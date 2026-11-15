@@ -1,6 +1,7 @@
 // Dónde mostrar cada error de la API al registrar o editar un comprobante (docs/UI-UX.md §6):
 //  - confirmar  → 409 STOCK_NEGATIVO_REQUIERE_CONFIRMACION: DialogoStockNegativo y reenvío con la confirmación.
-//  - reintentar → 409 ORDEN_EN_CONFLICTO: aviso con "Reintentar" (la API revirtió todo: reenviar es seguro).
+//  - recargar   → 409 ORDEN_EN_CONFLICTO o CONFLICTO_CONCURRENTE: aviso con "Reintentar", que vuelve a cargar los
+//                 datos sin reenviar (la API no guardó nada; la persona revisa y vuelve a guardar).
 //  - formulario → mensaje en el encabezado y/o errores junto a cada campo (y, si está anulado, solo lectura).
 // Es una función pura: la prueban errores-operacion.test.ts, código por código.
 import type { Path } from 'react-hook-form'
@@ -15,7 +16,7 @@ export type ErrorDeCampo = { campo: CampoFormulario; mensaje: string }
 
 export type UbicacionError =
   | { tipo: 'confirmar'; detalle: DetalleStockNegativo }
-  | { tipo: 'reintentar'; mensaje: string }
+  | { tipo: 'recargar'; mensaje: string }
   | { tipo: 'formulario'; mensaje: string | null; campos: ErrorDeCampo[]; soloLectura?: boolean }
 
 export type ContextoError = {
@@ -83,7 +84,8 @@ export function ubicarErrorOperacion(error: unknown, ctx: ContextoError): Ubicac
     case 'STOCK_NEGATIVO_REQUIERE_CONFIRMACION':
       return { tipo: 'confirmar', detalle: leerDetalleStockNegativo(error.detalle) }
     case 'ORDEN_EN_CONFLICTO':
-      return { tipo: 'reintentar', mensaje: mensajeDeError(error) }
+    case 'CONFLICTO_CONCURRENTE':
+      return { tipo: 'recargar', mensaje: mensajeDeError(error) }
     case 'STOCK_INSUFICIENTE': {
       const { productoId } = leerDetalleStockNegativo(error.detalle)
       const producto = productoId !== null ? ctx.nombreProducto(productoId) : null

@@ -1,7 +1,7 @@
 // Detalle del comprobante (/inventario/comprobantes/:id): la misma vista del panel lateral, para enlaces directos,
 // con Editar (?editar=1, mismo formulario del registro; PATCH con solo lo que cambió) y Anular (motivo obligatorio).
 // Un anulado queda en solo lectura.
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { ArrowLeftIcon, PencilIcon, XIcon } from 'lucide-react'
 import { DetalleComprobante } from './detalle-comprobante'
@@ -26,6 +26,8 @@ export function PaginaDetalleComprobante() {
   const { usuario } = useSesion()
   const roles = usuario?.roles ?? []
   const consulta = useComprobante(id)
+  // Tras un conflicto, «Reintentar» vuelve a cargar el comprobante y el formulario nace de nuevo con esos datos.
+  const [version, setVersion] = useState(0)
   const anular = useDialogo()
   const botonEditar = useRef<HTMLButtonElement>(null)
   const tituloPagina = useRef<HTMLHeadingElement>(null)
@@ -39,7 +41,7 @@ export function PaginaDetalleComprobante() {
   const titulo = comprobante ? `${nombreOperacion(comprobante)} ${documentoComprobante(comprobante)}` : 'Detalle del comprobante'
   useTituloPagina(titulo)
 
-  const puedeEditar = !!comprobante && puedeEditarComprobante(comprobante, roles)
+  const puedeEditar = !!comprobante && puedeEditarComprobante(comprobante, roles, usuario?.id)
   const puedeAnular = !!comprobante && comprobante.estado === 'REGISTRADO' && puede('comprobantes:anular', roles)
   const editando = puedeEditar && parametros.get('editar') === '1'
 
@@ -101,11 +103,14 @@ export function PaginaDetalleComprobante() {
       />
       {editando ? (
         <FormularioComprobante
-          key={comprobante.id}
+          key={`${comprobante.id}-${version}`}
           naturaleza={comprobante.naturaleza}
           fechaInicial={comprobante.fecha}
           establecimientoInicial={String(comprobante.lineas[0]?.establecimientoId ?? '')}
           comprobante={comprobante}
+          alRecargar={() => {
+            void consulta.refetch().then(() => setVersion((v) => v + 1))
+          }}
           alTerminarEdicion={() => {
             setParametros({})
             enfocarTrasEditar()

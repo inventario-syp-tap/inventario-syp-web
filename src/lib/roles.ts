@@ -42,6 +42,12 @@ export const PERMISOS = {
   'mermas:registrar': A_C,
   'ajustes:registrar': A_C,
   'comprobantes:anular': A_C,
+  'kardex:reordenar': A_C,
+  'kardex:recalcular': SOLO_A,
+  'periodos:cerrar': A_C,
+  'periodos:cerrar-en-bloque': SOLO_A,
+  'periodos:cierre-anual': A_C,
+  'saldos:editar': A_C,
 } as const satisfies Record<string, readonly Rol[]>
 
 export type Accion = keyof typeof PERMISOS
@@ -52,17 +58,19 @@ export function puede(accion: Accion, roles: readonly string[] = rolesActuales()
 }
 
 /**
- * Editar un comprobante registrado: ADMIN y CONTADOR, cualquiera; ASISTENTE, solo compras y ventas. La API además
- * exige que el ASISTENTE lo haya registrado él (responde 403): el contrato aún no dice quién lo creó (pendiente
- * `creadoPorId` para la API del S9), así que aquí no se puede filtrar por autor.
+ * Editar un comprobante registrado: ADMIN y CONTADOR, cualquiera; ASISTENTE, solo las compras y ventas que registró
+ * él (`creadoPorId` = id del usuario de la sesión). La API lo valida igual (403); esto evita el clic inútil.
  */
 export function puedeEditarComprobante(
-  comprobante: { naturaleza: string; estado: string },
+  comprobante: { naturaleza: string; estado: string; creadoPorId: string },
   roles: readonly string[] = rolesActuales(),
+  usuarioId: string | undefined = obtenerSesion().usuario?.id,
 ): boolean {
   if (comprobante.estado !== 'REGISTRADO') return false
   if (tieneAlgunRol('inventario', A_C, roles)) return true
-  return tieneRol('inventario', 'ASISTENTE', roles) && (comprobante.naturaleza === 'COMPRA' || comprobante.naturaleza === 'VENTA')
+  return tieneRol('inventario', 'ASISTENTE', roles)
+    && (comprobante.naturaleza === 'COMPRA' || comprobante.naturaleza === 'VENTA')
+    && !!usuarioId && comprobante.creadoPorId === usuarioId
 }
 
 /** Igual que `puede`, pero se vuelve a evaluar si cambia la sesión (para componentes). */

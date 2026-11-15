@@ -6,8 +6,9 @@ import { LayoutApp, type DatosRuta } from './layout/layout-app'
 import { PaginaNoEncontrada } from './pagina-no-encontrada'
 import { INICIO, PAGINAS_DEL_MODULO, RAIZ_MODULO } from './paginas'
 import {
-  CargandoPantalla, PaginaAjuste, PaginaCompra, PaginaComprobantes, PaginaConfiguracion, PaginaDetalleComprobante,
-  PaginaEstablecimientos, PaginaMerma, PaginaProductos, PaginaReglas, PaginaTerceros, PaginaUsuarios, PaginaVenta,
+  CargandoPantalla, PaginaAjuste, PaginaCierreAnual, PaginaCompra, PaginaComprobantes, PaginaConfiguracion,
+  PaginaDetalleComprobante, PaginaEstablecimientos, PaginaKardex, PaginaMerma, PaginaPeriodos, PaginaProductos, PaginaReglas,
+  PaginaSaldosIniciales, PaginaTerceros, PaginaUsuarios, PaginaVenta,
 } from './pantallas-diferidas'
 import { RaizApp } from './raiz-app'
 import { RutaProtegida } from './ruta-protegida'
@@ -36,6 +37,10 @@ const PANTALLAS: Record<string, ReactNode> = {
   [`${RAIZ_MODULO}/ajustes/nuevo`]: diferida(<PaginaAjuste />),
   [`${RAIZ_MODULO}/comprobantes`]: diferida(<PaginaComprobantes />),
   [`${RAIZ_MODULO}/comprobantes/:id`]: diferida(<PaginaDetalleComprobante />),
+  [`${RAIZ_MODULO}/kardex`]: diferida(<PaginaKardex />),
+  [`${RAIZ_MODULO}/periodos`]: diferida(<PaginaPeriodos />),
+  [`${RAIZ_MODULO}/periodos/cierre-anual`]: diferida(<PaginaCierreAnual />),
+  [`${RAIZ_MODULO}/saldos-iniciales`]: diferida(<PaginaSaldosIniciales />),
 }
 
 export const rutas: RouteObject[] = [

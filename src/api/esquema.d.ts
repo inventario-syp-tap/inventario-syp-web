@@ -249,6 +249,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/inventario/v1/kardex": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Kardex 13.1 detallado de un producto: SI del periodo, filas con tercero, descripción y alertas, subtotales y estado por mes, SF */
+        get: operations["KardexController_consultar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/kardex/alertas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Alertas del año: stock negativo, fechas fuera de orden, saldo cero con costo, SI desactualizado y libro pendiente de impresión */
+        get: operations["KardexController_alertas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/kardex/recalcular": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Recalcula el año (idempotente). 409 PERIODO_CERRADO si cambiaría un mes cerrado */
+        post: operations["KardexController_recalcular"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/inventario/v1/configuracion": {
         parameters: {
             query?: never;
@@ -434,7 +485,7 @@ export interface paths {
         /** Reglas contables con su vigencia */
         get: operations["ReglasContablesController_listar"];
         put?: never;
-        /** Crea una regla (código RC-nn automático; 409 VIGENCIA_SUPERPUESTA si se cruza con otra) */
+        /** Crea una regla (código RC-nn automático; 409 VIGENCIA_SUPERPUESTA si se cruza con otra; 409 PERIODO_CERRADO si su vigencia toca un mes CERRADO, D-29) */
         post: operations["ReglasContablesController_crear"];
         delete?: never;
         options?: never;
@@ -455,7 +506,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Cierra o reabre la vigencia (vigenteHasta) y corrige textos. Las reglas no se borran */
+        /** Cierra o reabre la vigencia (vigenteHasta) y corrige textos. Las reglas no se borran. 409 PERIODO_CERRADO si el cambio de vigencia toca un mes CERRADO (D-29) */
         patch: operations["ReglasContablesController_editar"];
         trace?: never;
     };
@@ -485,7 +536,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Compra (factura 01, operación 02). 409 PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, COMPROBANTE_DUPLICADO; 422 SALDO_INICIAL_INEXISTENTE */
+        /** Compra (factura 01, operación 02). 409 PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, COMPROBANTE_DUPLICADO, ORDEN_EN_CONFLICTO; 422 SALDO_INICIAL_INEXISTENTE, PRODUCTO_INEXISTENTE, TERCERO_INEXISTENTE, ESTABLECIMIENTO_INEXISTENTE */
         post: operations["ComprobantesController_crearCompra"];
         delete?: never;
         options?: never;
@@ -502,7 +553,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Venta nacional (01) o exportación (17), PEN o USD. 422 PRECIO_VENTA_REQUERIDO, TIPO_CAMBIO_REQUERIDO; 409 PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, COMPROBANTE_DUPLICADO; 422 SALDO_INICIAL_INEXISTENTE */
+        /** Venta nacional (01) o exportación (17), PEN o USD. 422 PRECIO_VENTA_REQUERIDO, TIPO_CAMBIO_REQUERIDO; 409 PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, COMPROBANTE_DUPLICADO, ORDEN_EN_CONFLICTO; 422 SALDO_INICIAL_INEXISTENTE, PRODUCTO_INEXISTENTE, TERCERO_INEXISTENTE, ESTABLECIMIENTO_INEXISTENTE */
         post: operations["ComprobantesController_crearVenta"];
         delete?: never;
         options?: never;
@@ -519,7 +570,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Merma 13 (00-IT-<año>) o desmedro 14 (00-AD-<correlativo>). 422 SUSTENTO_REQUERIDO; 409 PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, COMPROBANTE_DUPLICADO; 422 SALDO_INICIAL_INEXISTENTE */
+        /** Merma 13 (00-IT-<año>) o desmedro 14 (00-AD-<correlativo>). 422 SUSTENTO_REQUERIDO; 409 PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, COMPROBANTE_DUPLICADO, ORDEN_EN_CONFLICTO; 422 SALDO_INICIAL_INEXISTENTE, PRODUCTO_INEXISTENTE, TERCERO_INEXISTENTE, ESTABLECIMIENTO_INEXISTENTE */
         post: operations["ComprobantesController_crearMerma"];
         delete?: never;
         options?: never;
@@ -536,7 +587,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Ajuste por diferencia de inventario 28 (00-AI-<correlativo>). 422 SUSTENTO_REQUERIDO; 409 PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, COMPROBANTE_DUPLICADO; 422 SALDO_INICIAL_INEXISTENTE */
+        /** Ajuste por diferencia de inventario 28 (00-AI-<correlativo>). 422 SUSTENTO_REQUERIDO; 409 PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, COMPROBANTE_DUPLICADO, ORDEN_EN_CONFLICTO; 422 SALDO_INICIAL_INEXISTENTE, PRODUCTO_INEXISTENTE, TERCERO_INEXISTENTE, ESTABLECIMIENTO_INEXISTENTE */
         post: operations["ComprobantesController_crearAjuste"];
         delete?: never;
         options?: never;
@@ -575,7 +626,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Edita (ASISTENTE: solo sus compras y ventas) y recalcula. 409 COMPROBANTE_ANULADO; 409 PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, COMPROBANTE_DUPLICADO; 422 SALDO_INICIAL_INEXISTENTE */
+        /** Edita (ASISTENTE: solo sus compras y ventas) y recalcula. 409 COMPROBANTE_ANULADO; 409 PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, COMPROBANTE_DUPLICADO, ORDEN_EN_CONFLICTO; 422 SALDO_INICIAL_INEXISTENTE, PRODUCTO_INEXISTENTE, TERCERO_INEXISTENTE, ESTABLECIMIENTO_INEXISTENTE */
         patch: operations["ComprobantesController_editar"];
         trace?: never;
     };
@@ -588,7 +639,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Anula con motivo y libera la clave. 409 COMPROBANTE_ANULADO; 409 PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, COMPROBANTE_DUPLICADO; 422 SALDO_INICIAL_INEXISTENTE */
+        /** Anula con motivo y libera la clave. 409 COMPROBANTE_ANULADO; 409 PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, COMPROBANTE_DUPLICADO, ORDEN_EN_CONFLICTO; 422 SALDO_INICIAL_INEXISTENTE, PRODUCTO_INEXISTENTE, TERCERO_INEXISTENTE, ESTABLECIMIENTO_INEXISTENTE */
         post: operations["ComprobantesController_anular"];
         delete?: never;
         options?: never;
@@ -607,6 +658,142 @@ export interface paths {
         put?: never;
         /** Sube o baja un movimiento dentro de la misma fecha del mismo kardex. 422 REORDEN_FUERA_DE_FECHA; 409 COMPROBANTE_ANULADO, PERIODO_CERRADO */
         post: operations["MovimientosController_mover"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/periodos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 12 meses del año con estado (ABIERTO, CERRADO, SIN_PERIODO), impresión del libro y asientos exportados. La web lo usa para avisar "mes cerrado" antes de guardar */
+        get: operations["PeriodosController_listar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/periodos/cerrar-en-bloque": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cierra un rango de meses en una sola transacción (p. ej. 2024-01 a 2025-12 tras la carga histórica); salta los ya cerrados */
+        post: operations["PeriodosController_cerrarEnBloque"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/periodos/{anio}/{mes}/cerrar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cierra el mes: CierreMensual por producto con hash; advierte saldos negativos; al volver a cerrar muestra las diferencias */
+        post: operations["PeriodosController_cerrar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/periodos/{anio}/{mes}/reabrir": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reabre el mes con motivo (auditado); solo el más reciente cerrado */
+        post: operations["PeriodosController_reabrir"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/periodos/{anio}/cierre-anual/vista-previa": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** SI propuesto del año siguiente (cantidad a 4, costo a 2 decimales) y diferencias con el existente */
+        get: operations["PeriodosController_vistaPrevia"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/periodos/{anio}/cierre-anual": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Genera el SI del año siguiente (CIERRE_ANUAL). Si un SI existente difiere: confirmarReemplazo o conservarExistentes */
+        post: operations["PeriodosController_confirmarCierreAnual"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/saldos-iniciales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Saldos iniciales del año con su origen */
+        get: operations["SaldosInicialesController_listar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/saldos-iniciales/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** SI MANUAL con motivo (auditado): recalcula el año. 409 PERIODO_CERRADO si cambiaría un mes cerrado */
+        put: operations["SaldosInicialesController_editar"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -969,6 +1156,264 @@ export interface components {
             detalle: string[];
             /** @example 0 */
             totalDiferencias: number;
+        };
+        ProductoKardexDto: {
+            /** @example 1 */
+            id: number;
+            /** @example D-FIERRO */
+            codigo: string;
+            /** @example CHATARRA DE FIERRO (DEMO) */
+            descripcion: string;
+        };
+        SaldoInicialAnioDto: {
+            /** @example 4 */
+            id: number;
+            /**
+             * @example CIERRE_ANUAL
+             * @enum {string}
+             */
+            origen: "IMPORTACION" | "CIERRE_ANUAL" | "MANUAL";
+            /** @example false */
+            desactualizado: boolean;
+        };
+        SaldoKardexDto: {
+            /** @example 12.5000 */
+            cantidad: string;
+            /** @example 13500 */
+            costoTotal: string;
+            /** @example 1080 */
+            costoUnitario: string;
+        };
+        ImporteDto: {
+            /** @example 20.0000 */
+            cantidad: string;
+            /** @example 21600 */
+            costoTotal: string;
+        };
+        TerceroKardexDto: {
+            /** @example 6 */
+            tipoDocumento: string;
+            /** @example 20000000001 */
+            numeroDocumento: string | null;
+            /** @example PROVEEDOR DEMO S.A.C. */
+            razonSocial: string;
+        };
+        ValorMovimientoDto: {
+            /** @example 20.0000 */
+            cantidad: string;
+            /** @example 21600 */
+            costoTotal: string;
+            /** @example 1080 */
+            costoUnitario: string;
+        };
+        FilaKardexDto: {
+            /** @example 0b6f2c1e-9a8d-4c7b-b6a5-1234567890ab */
+            movimientoId: string;
+            /** @example 1d2c3b4a-5e6f-4a7b-8c9d-0e1f2a3b4c5d */
+            comprobanteId: string;
+            /** @example 3 */
+            orden: number;
+            /** @example 2026-01-08 */
+            fecha: string;
+            /**
+             * @description Tabla 10
+             * @example 01
+             */
+            tipoComprobante: string;
+            /** @example F001 */
+            serie: string;
+            /** @example 123 */
+            numero: string;
+            /** @example 01-F001-123 */
+            documento: string;
+            /**
+             * @description Tabla 12
+             * @example 02
+             */
+            tipoOperacion: string;
+            tercero: components["schemas"]["TerceroKardexDto"] | null;
+            /** @example Chatarra pesada */
+            descripcion: string;
+            /**
+             * @example ENTRADA
+             * @enum {string}
+             */
+            tipoMovimiento: "ENTRADA" | "SALIDA";
+            entrada: components["schemas"]["ValorMovimientoDto"] | null;
+            salida: components["schemas"]["ValorMovimientoDto"] | null;
+            saldo: components["schemas"]["SaldoKardexDto"];
+            /**
+             * @description STOCK_NEGATIVO, FECHA_FUERA_DE_ORDEN, SALDO_CERO_CON_COSTO
+             * @example []
+             */
+            alertas: string[];
+        };
+        MesKardexDto: {
+            /** @example 1 */
+            mes: number;
+            /** @example 2026-01 */
+            periodo: string;
+            /**
+             * @example ABIERTO
+             * @enum {string}
+             */
+            estado: "ABIERTO" | "CERRADO" | "SIN_PERIODO";
+            saldoInicial: components["schemas"]["SaldoKardexDto"];
+            /** @description Subtotal de entradas */
+            entradas: components["schemas"]["ImporteDto"];
+            /** @description Subtotal de salidas */
+            salidas: components["schemas"]["ImporteDto"];
+            saldoFinal: components["schemas"]["SaldoKardexDto"];
+            filas: components["schemas"]["FilaKardexDto"][];
+        };
+        KardexDto: {
+            producto: components["schemas"]["ProductoKardexDto"];
+            /** @example 1 */
+            establecimientoId: number;
+            /** @example 2026 */
+            anio: number;
+            /** @example 1 */
+            mes: number | null;
+            /** @description Saldo inicial del AÑO (origen y si está desactualizado) */
+            saldoInicialAnio: components["schemas"]["SaldoInicialAnioDto"] | null;
+            /** @description Saldo al inicio del periodo consultado (mes o año) */
+            saldoInicial: components["schemas"]["SaldoKardexDto"];
+            meses: components["schemas"]["MesKardexDto"][];
+            /** @description Saldo al final del periodo consultado */
+            saldoFinal: components["schemas"]["SaldoKardexDto"];
+        };
+        AlertaDto: {
+            /**
+             * @example STOCK_NEGATIVO
+             * @enum {string}
+             */
+            tipo: "STOCK_NEGATIVO" | "FECHA_FUERA_DE_ORDEN" | "SALDO_CERO_CON_COSTO" | "SI_DESACTUALIZADO" | "LIBRO_PENDIENTE_IMPRESION";
+            /** @example 2026 */
+            anio: number;
+            /** @example 1 */
+            mes: number | null;
+            /** @example 1 */
+            productoId: number | null;
+            /** @example D-FIERRO */
+            productoCodigo: string | null;
+            /** @example 0b6f2c1e-9a8d-4c7b-b6a5-1234567890ab */
+            movimientoId: string | null;
+            /** @example 1d2c3b4a-5e6f-4a7b-8c9d-0e1f2a3b4c5d */
+            comprobanteId: string | null;
+            /** @example 2026-01-20 */
+            fecha: string | null;
+            /** @example 01-E001-45 */
+            documento: string | null;
+            /** @example El saldo queda negativo (-2.5 TN). */
+            mensaje: string;
+        };
+        AlertasDto: {
+            /** @example 2026 */
+            anio: number;
+            /**
+             * @description Cantidad de alertas por tipo
+             * @example {
+             *       "STOCK_NEGATIVO": 1
+             *     }
+             */
+            totales: Record<string, never>;
+            alertas: components["schemas"]["AlertaDto"][];
+        };
+        ErrorNegocioDto: {
+            /** @example PERIODO_CERRADO */
+            codigo: string;
+            /** @example El periodo 2026-01 está cerrado: … */
+            mensaje: string;
+            /**
+             * @description Datos del error según el código (ver docs/02 §17)
+             * @example {
+             *       "periodos": [
+             *         "2026-01"
+             *       ]
+             *     }
+             */
+            detalle: Record<string, never> | null;
+        };
+        MovimientoNegativoDto: {
+            /** @example 0b6f2c1e-9a8d-4c7b-b6a5-1234567890ab */
+            movimientoId: string;
+            /** @example 1 */
+            productoId: number;
+            /** @example 2026-01-20 */
+            fecha: string;
+            /** @example -2.5000 */
+            saldoResultante: string;
+        };
+        StockNegativoDetalleDto: {
+            /** @example 1 */
+            productoId: number;
+            /** @example 1 */
+            establecimientoId: number;
+            /** @example 2026 */
+            anio: number;
+            /**
+             * @description Fecha del primer movimiento que queda negativo
+             * @example 2026-01-20
+             */
+            fecha: string;
+            /** @example -2.5000 */
+            saldoResultante: string;
+            /**
+             * @description Saldo justo antes de ese movimiento
+             * @example 7.5000
+             */
+            disponibleAntes: string;
+            movimientos: components["schemas"]["MovimientoNegativoDto"][];
+        };
+        ErrorStockNegativoDto: {
+            /**
+             * @example STOCK_NEGATIVO_REQUIERE_CONFIRMACION
+             * @enum {string}
+             */
+            codigo: "STOCK_NEGATIVO_REQUIERE_CONFIRMACION" | "STOCK_INSUFICIENTE";
+            /** @example La operación deja saldo negativo. Confírmala para registrarla con la alerta STOCK_NEGATIVO. */
+            mensaje: string;
+            detalle: components["schemas"]["StockNegativoDetalleDto"];
+        };
+        DetallePeriodosDto: {
+            /**
+             * @example [
+             *       "2026-01"
+             *     ]
+             */
+            periodos: string[];
+            /** @example 1 */
+            productoId?: number;
+        };
+        RecalcularKardexDto: {
+            /** @example 2026 */
+            anio: number;
+            /**
+             * @description Sin producto: todos
+             * @example 1
+             */
+            productoId?: number;
+        };
+        ResultadoRecalculoDto: {
+            /** @example 2026 */
+            anio: number;
+            /**
+             * @description Kardex recalculados
+             * @example 3
+             */
+            kardex: number;
+            /** @example 187 */
+            filas: number;
+            /**
+             * @description Filas cuyos valores guardados cambiaron (0 = el recálculo es idempotente)
+             * @example 0
+             */
+            filasCambiadas: number;
+            /**
+             * @description Saldos iniciales del año siguiente marcados como desactualizados
+             * @example []
+             */
+            saldosDesactualizados: string[];
         };
         EmpresaDatosDto: {
             /** @example 20000000001 */
@@ -1747,6 +2192,16 @@ export interface components {
             origenImportacion: string | null;
             /** @example 2026-01-08T15:04:05.000Z */
             creadoEn: string;
+            /**
+             * @description UUID de quien registró el comprobante (la web oculta "Editar" al ASISTENTE en los ajenos)
+             * @example 5f0c2a9e-1b3d-4e6f-8a7b-9c0d1e2f3a4b
+             */
+            creadoPorId: string;
+            /**
+             * @description Nombre de quien lo registró; null si el usuario ya no existe
+             * @example Asistente Demo
+             */
+            creadoPor: string | null;
             lineas: components["schemas"]["LineaComprobanteDto"][];
         };
         ComprobantesPaginaDto: {
@@ -2145,6 +2600,309 @@ export interface components {
              */
             direccion: "ARRIBA" | "ABAJO";
         };
+        LibroImpresoDto: {
+            /** @example 2026-02-10T15:04:05.000Z */
+            impresoEn: string;
+        };
+        AsientoExportadoResumenDto: {
+            /** @example COSTO_VENTAS */
+            tipoAsiento: string;
+            /** @example 0015 */
+            numeroAsiento: string;
+            /** @example 2026-02-10T15:04:05.000Z */
+            exportadoEn: string;
+        };
+        PeriodoDto: {
+            /** @example 2026 */
+            anio: number;
+            /** @example 1 */
+            mes: number;
+            /** @example 2026-01 */
+            periodo: string;
+            /**
+             * @example CERRADO
+             * @enum {string}
+             */
+            estado: "ABIERTO" | "CERRADO" | "SIN_PERIODO";
+            /** @example 2026-02-10T15:04:05.000Z */
+            cerradoEn: string | null;
+            /** @example Contadora Demo */
+            cerradoPor: string | null;
+            /**
+             * @description Versión del último cierre (sube al volver a cerrar tras reabrir)
+             * @example 1
+             */
+            versionCierre: number | null;
+            /** @example true */
+            tieneMovimientos: boolean;
+            libroImpreso: components["schemas"]["LibroImpresoDto"] | null;
+            asientosExportados: components["schemas"]["AsientoExportadoResumenDto"][];
+        };
+        PeriodosAnioDto: {
+            /** @example 2026 */
+            anio: number;
+            /** @description Siempre 12 meses */
+            meses: components["schemas"]["PeriodoDto"][];
+            /**
+             * @description Los 12 meses están CERRADOS
+             * @example false
+             */
+            anioCompletoCerrado: boolean;
+        };
+        CerrarEnBloqueDto: {
+            /**
+             * @description AAAA-MM
+             * @example 2024-01
+             */
+            desde: string;
+            /**
+             * @description AAAA-MM (inclusive)
+             * @example 2025-12
+             */
+            hasta: string;
+        };
+        TotalesCierreDto: {
+            /** @example 1 */
+            productoId: number;
+            /** @example D-FIERRO */
+            productoCodigo: string;
+            /** @example 1 */
+            establecimientoId: number;
+            /** @example 1 */
+            version: number;
+            /** @example 10.0000 */
+            siCantidad: string;
+            /** @example 10800 */
+            siCosto: string;
+            /** @example 20.0000 */
+            comprasCantidad: string;
+            /** @example 21600 */
+            comprasCosto: string;
+            /** @example 0 */
+            otrasEntradasCantidad: string;
+            /** @example 0 */
+            otrasEntradasCosto: string;
+            /** @example 15.0000 */
+            ventasCantidad: string;
+            /** @example 16200 */
+            costoVentas: string;
+            /** @example 0 */
+            mermasCantidad: string;
+            /** @example 0 */
+            mermasCosto: string;
+            /** @example 0 */
+            desmedrosCantidad: string;
+            /** @example 0 */
+            desmedrosCosto: string;
+            /** @example 0 */
+            otrasSalidasCantidad: string;
+            /** @example 0 */
+            otrasSalidasCosto: string;
+            /** @example 15.0000 */
+            sfCantidad: string;
+            /** @example 16200 */
+            sfCosto: string;
+            /** @example 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08 */
+            hashMovimientos: string;
+        };
+        SaldoNegativoDto: {
+            /** @example 1 */
+            productoId: number;
+            /** @example D-FIERRO */
+            productoCodigo: string;
+            /** @example 0b6f2c1e-9a8d-4c7b-b6a5-1234567890ab */
+            movimientoId: string;
+            /** @example 2026-01-20 */
+            fecha: string;
+            /** @example -2.5000 */
+            saldoCantidad: string;
+        };
+        DiferenciaCierreDto: {
+            /** @example 1 */
+            productoId: number;
+            /** @example costoVentas */
+            campo: string;
+            /** @example 2200 */
+            anterior: string;
+            /** @example 2300 */
+            nuevo: string;
+            /**
+             * @description nuevo − anterior
+             * @example 100
+             */
+            diferencia: string;
+        };
+        ResultadoCierreDto: {
+            periodo: components["schemas"]["PeriodoDto"];
+            cierres: components["schemas"]["TotalesCierreDto"][];
+            /** @description Advertencia: saldos negativos del mes (no impiden el cierre, D-18) */
+            saldosNegativos: components["schemas"]["SaldoNegativoDto"][];
+            /** @description Al volver a cerrar: totales que cambiaron respecto del cierre anterior */
+            diferenciasConCierreAnterior: components["schemas"]["DiferenciaCierreDto"][];
+        };
+        ResultadoBloqueDto: {
+            cierres: components["schemas"]["ResultadoCierreDto"][];
+        };
+        ReabrirPeriodoDto: {
+            /** @example Corrección de una factura de compra después del PDT 621 */
+            motivo: string;
+        };
+        ResultadoReaperturaDto: {
+            periodo: components["schemas"]["PeriodoDto"];
+            /**
+             * @example [
+             *       "El libro 12.1 de 2026-01 ya se registró como impreso."
+             *     ]
+             */
+            advertencias: string[];
+        };
+        SaldoTextoDto: {
+            /** @example 12.5000 */
+            cantidad: string;
+            /** @example 13500.00 */
+            costoTotal: string;
+        };
+        ExistenteDto: {
+            /** @example 12.5000 */
+            cantidad: string;
+            /** @example 13500.00 */
+            costoTotal: string;
+            /** @example 7 */
+            id: number;
+            /**
+             * @example MANUAL
+             * @enum {string}
+             */
+            origen: "IMPORTACION" | "CIERRE_ANUAL" | "MANUAL";
+            /** @example Ajuste de céntimos */
+            motivo: string | null;
+            /** @example false */
+            desactualizado: boolean;
+        };
+        SaldoCierreAnualDto: {
+            /** @example 1 */
+            productoId: number;
+            /** @example D-FIERRO */
+            productoCodigo: string;
+            /** @example 1 */
+            establecimientoId: number;
+            /** @description SF exacto del año */
+            saldoFinal: components["schemas"]["SaldoTextoDto"];
+            /** @description SI propuesto: cantidad a 4 y costo a 2 decimales (02 §9) */
+            propuesto: components["schemas"]["SaldoTextoDto"];
+            existente: components["schemas"]["ExistenteDto"] | null;
+            /**
+             * @example DIFERENTE
+             * @enum {string}
+             */
+            comparacion: "IGUAL" | "DIFERENTE" | "INEXISTENTE";
+            /** @description propuesto − existente */
+            diferencia: components["schemas"]["SaldoTextoDto"] | null;
+            /**
+             * @description Vista previa: lo que haría con confirmarReemplazo (REEMPLAZAR) o conservarExistentes (CONSERVAR); al confirmar: lo que se hizo
+             * @example CONSERVAR
+             * @enum {string}
+             */
+            accion: "CREAR" | "REEMPLAZAR" | "CONSERVAR" | "CAMBIAR_ORIGEN" | "SIN_CAMBIOS";
+        };
+        CierreAnualVistaDto: {
+            /** @example 2025 */
+            anio: number;
+            /** @example 2026 */
+            anioSiguiente: number;
+            /**
+             * @description Meses aún ABIERTOS
+             * @example []
+             */
+            mesesAbiertos: string[];
+            /** @example true */
+            requiereConfirmacion: boolean;
+            saldos: components["schemas"]["SaldoCierreAnualDto"][];
+        };
+        CierreAnualDto: {
+            /**
+             * @description Reemplaza por el SI propuesto los SI existentes del año siguiente que difieren (02 §9)
+             * @example false
+             */
+            confirmarReemplazo?: boolean;
+            /**
+             * @description Alternativa a confirmarReemplazo: conserva los SI existentes que difieren (p. ej. MANUAL, D-07) y registra la diferencia en la auditoría
+             * @example true
+             */
+            conservarExistentes?: boolean;
+            /**
+             * @description Confirma que el SI nuevo deja saldos negativos en el año siguiente (02 §4). Sin ella → 409 STOCK_NEGATIVO_REQUIERE_CONFIRMACION
+             * @example false
+             */
+            confirmarStockNegativo?: boolean;
+        };
+        ResultadoCierreAnualDto: {
+            /** @example 2025 */
+            anio: number;
+            /** @example 2026 */
+            anioSiguiente: number;
+            /**
+             * @description Meses aún ABIERTOS
+             * @example []
+             */
+            mesesAbiertos: string[];
+            /** @example true */
+            requiereConfirmacion: boolean;
+            saldos: components["schemas"]["SaldoCierreAnualDto"][];
+            /**
+             * @description Kardex del año siguiente recalculados por el cambio de SI
+             * @example 0
+             */
+            kardexRecalculados: number;
+        };
+        SaldoInicialDto: {
+            /** @example 4 */
+            id: number;
+            /** @example 2026 */
+            anio: number;
+            /** @example 1 */
+            productoId: number;
+            /** @example D-FIERRO */
+            productoCodigo: string;
+            /** @example 1 */
+            establecimientoId: number;
+            /** @example 12.5000 */
+            cantidad: string;
+            /** @example 13500 */
+            costoTotal: string;
+            /**
+             * @example MANUAL
+             * @enum {string}
+             */
+            origen: "IMPORTACION" | "CIERRE_ANUAL" | "MANUAL";
+            /** @example Ajuste de céntimos */
+            motivo: string | null;
+            /** @example false */
+            desactualizado: boolean;
+            /** @example Contadora Demo */
+            registradoPor: string | null;
+            /** @example 2026-01-02T15:04:05.000Z */
+            actualizadoEn: string;
+        };
+        EditarSaldoInicialDto: {
+            /**
+             * @description TN, hasta 4 decimales
+             * @example 12.5000
+             */
+            cantidad: string;
+            /**
+             * @description S/, hasta 10 decimales
+             * @example 13500.00
+             */
+            costoTotal: string;
+            /** @example Ajuste de céntimos para cuadrar con el sistema contable */
+            motivo: string;
+            /**
+             * @description Confirma que el nuevo SI deja saldos negativos (02 §4). Sin ella → 409 STOCK_NEGATIVO_REQUIERE_CONFIRMACION
+             * @example false
+             */
+            confirmarStockNegativo?: boolean;
+        };
     };
     responses: never;
     parameters: never;
@@ -2462,6 +3220,94 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ParidadDto"];
+                };
+            };
+        };
+    };
+    KardexController_consultar: {
+        parameters: {
+            query: {
+                productoId: number;
+                anio: number;
+                /** @description Sin mes: el año completo */
+                mes?: number;
+                /** @description Por defecto, el establecimiento principal (0001) */
+                establecimientoId?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KardexDto"];
+                };
+            };
+        };
+    };
+    KardexController_alertas: {
+        parameters: {
+            query: {
+                anio: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertasDto"];
+                };
+            };
+        };
+    };
+    KardexController_recalcular: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecalcularKardexDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoRecalculoDto"];
+                };
+            };
+            /** @description PERIODO_CERRADO, CONFLICTO_CONCURRENTE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description PRODUCTO_INEXISTENTE */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
                 };
             };
         };
@@ -2846,6 +3692,24 @@ export interface operations {
                     "application/json": components["schemas"]["ReglaContableDto"];
                 };
             };
+            /** @description VIGENCIA_SUPERPUESTA, PERIODO_CERRADO */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description VIGENCIA_INVALIDA, OPERACION_NO_CORRESPONDE, CODIGO_SUNAT_INVALIDO, CUENTA_INVALIDA, PRODUCTO_INEXISTENTE */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
         };
     };
     ReglasContablesController_editar: {
@@ -2869,6 +3733,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReglaContableDto"];
+                };
+            };
+            /** @description VIGENCIA_SUPERPUESTA, PERIODO_CERRADO */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description VIGENCIA_INVALIDA */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
                 };
             };
         };
@@ -2924,6 +3806,24 @@ export interface operations {
                     "application/json": components["schemas"]["ResultadoEscrituraDto"];
                 };
             };
+            /** @description PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, COMPROBANTE_DUPLICADO, ORDEN_EN_CONFLICTO (reintentable: no se guardó nada), CONFLICTO_CONCURRENTE (reintentable: no se guardó nada) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"] | components["schemas"]["ErrorStockNegativoDto"];
+                };
+            };
+            /** @description SALDO_INICIAL_INEXISTENTE, PRODUCTO_INEXISTENTE, TERCERO_INEXISTENTE, ESTABLECIMIENTO_INEXISTENTE */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
         };
     };
     ComprobantesController_crearVenta: {
@@ -2945,6 +3845,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResultadoEscrituraDto"];
+                };
+            };
+            /** @description PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, COMPROBANTE_DUPLICADO, ORDEN_EN_CONFLICTO (reintentable: no se guardó nada), CONFLICTO_CONCURRENTE (reintentable: no se guardó nada) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"] | components["schemas"]["ErrorStockNegativoDto"];
+                };
+            };
+            /** @description SALDO_INICIAL_INEXISTENTE, PRODUCTO_INEXISTENTE, TERCERO_INEXISTENTE, ESTABLECIMIENTO_INEXISTENTE, PRECIO_VENTA_REQUERIDO, TIPO_CAMBIO_REQUERIDO */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
                 };
             };
         };
@@ -2970,6 +3888,24 @@ export interface operations {
                     "application/json": components["schemas"]["ResultadoEscrituraDto"];
                 };
             };
+            /** @description PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, COMPROBANTE_DUPLICADO, ORDEN_EN_CONFLICTO (reintentable: no se guardó nada), CONFLICTO_CONCURRENTE (reintentable: no se guardó nada) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"] | components["schemas"]["ErrorStockNegativoDto"];
+                };
+            };
+            /** @description SALDO_INICIAL_INEXISTENTE, PRODUCTO_INEXISTENTE, TERCERO_INEXISTENTE, ESTABLECIMIENTO_INEXISTENTE, SUSTENTO_REQUERIDO */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
         };
     };
     ComprobantesController_crearAjuste: {
@@ -2991,6 +3927,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResultadoEscrituraDto"];
+                };
+            };
+            /** @description PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, COMPROBANTE_DUPLICADO, ORDEN_EN_CONFLICTO (reintentable: no se guardó nada), CONFLICTO_CONCURRENTE (reintentable: no se guardó nada) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"] | components["schemas"]["ErrorStockNegativoDto"];
+                };
+            };
+            /** @description SALDO_INICIAL_INEXISTENTE, PRODUCTO_INEXISTENTE, TERCERO_INEXISTENTE, ESTABLECIMIENTO_INEXISTENTE, SUSTENTO_REQUERIDO */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
                 };
             };
         };
@@ -3062,6 +4016,24 @@ export interface operations {
                     "application/json": components["schemas"]["ResultadoEscrituraDto"];
                 };
             };
+            /** @description PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, COMPROBANTE_DUPLICADO, ORDEN_EN_CONFLICTO (reintentable: no se guardó nada), CONFLICTO_CONCURRENTE (reintentable: no se guardó nada), COMPROBANTE_ANULADO */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"] | components["schemas"]["ErrorStockNegativoDto"];
+                };
+            };
+            /** @description SALDO_INICIAL_INEXISTENTE, PRODUCTO_INEXISTENTE, TERCERO_INEXISTENTE, ESTABLECIMIENTO_INEXISTENTE, PRECIO_VENTA_REQUERIDO, TIPO_CAMBIO_REQUERIDO, SUSTENTO_REQUERIDO */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
         };
     };
     ComprobantesController_anular: {
@@ -3087,6 +4059,15 @@ export interface operations {
                     "application/json": components["schemas"]["ResultadoEscrituraDto"];
                 };
             };
+            /** @description PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, COMPROBANTE_DUPLICADO, ORDEN_EN_CONFLICTO (reintentable: no se guardó nada), CONFLICTO_CONCURRENTE (reintentable: no se guardó nada), COMPROBANTE_ANULADO */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"] | components["schemas"]["ErrorStockNegativoDto"];
+                };
+            };
         };
     };
     MovimientosController_mover: {
@@ -3110,6 +4091,289 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResultadoEscrituraDto"];
+                };
+            };
+            /** @description PERIODO_CERRADO, COMPROBANTE_ANULADO, ORDEN_EN_CONFLICTO */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description REORDEN_FUERA_DE_FECHA */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+        };
+    };
+    PeriodosController_listar: {
+        parameters: {
+            query: {
+                anio: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeriodosAnioDto"];
+                };
+            };
+        };
+    };
+    PeriodosController_cerrarEnBloque: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CerrarEnBloqueDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoBloqueDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description PERIODO_ANTERIOR_ABIERTO, CIERRE_CON_SALDO_CERO_CON_COSTO, PERIODO_CERRADO, CONFLICTO_CONCURRENTE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description PERIODO_FUTURO, PERIODO_ANTERIOR_AL_INICIO */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+        };
+    };
+    PeriodosController_cerrar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                anio: number;
+                mes: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoCierreDto"];
+                };
+            };
+            /** @description PERIODO_CERRADO (ya estaba cerrado), PERIODO_ANTERIOR_ABIERTO, CIERRE_CON_SALDO_CERO_CON_COSTO, CONFLICTO_CONCURRENTE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description PERIODO_FUTURO (posterior al mes en curso, America/Lima), PERIODO_ANTERIOR_AL_INICIO (anterior al primer periodo registrado) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+        };
+    };
+    PeriodosController_reabrir: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                anio: number;
+                mes: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReabrirPeriodoDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoReaperturaDto"];
+                };
+            };
+            /** @description PERIODO_NO_CERRADO, PERIODO_POSTERIOR_CERRADO */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+        };
+    };
+    PeriodosController_vistaPrevia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                anio: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CierreAnualVistaDto"];
+                };
+            };
+        };
+    };
+    PeriodosController_confirmarCierreAnual: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                anio: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CierreAnualDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoCierreAnualDto"];
+                };
+            };
+            /** @description VALIDACION (confirmarReemplazo y conservarExistentes a la vez) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description CIERRE_ANUAL_INCOMPLETO, SALDO_INICIAL_REQUIERE_CONFIRMACION, PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, CONFLICTO_CONCURRENTE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"] | components["schemas"]["ErrorStockNegativoDto"];
+                };
+            };
+        };
+    };
+    SaldosInicialesController_listar: {
+        parameters: {
+            query: {
+                anio: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaldoInicialDto"][];
+                };
+            };
+        };
+    };
+    SaldosInicialesController_editar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditarSaldoInicialDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaldoInicialDto"];
+                };
+            };
+            /** @description PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, CONFLICTO_CONCURRENTE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"] | components["schemas"]["ErrorStockNegativoDto"];
                 };
             };
         };

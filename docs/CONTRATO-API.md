@@ -187,7 +187,7 @@ Archivos: `src/api/{productos,terceros,reglas-contables,establecimientos,configu
 
 ### 6.3 Comprobantes (S8, `src/api/comprobantes.ts`)
 
-Pantallas en `src/funcionalidades/comprobantes/`. Decimales (cantidad, costo, valor de venta, tipo de cambio) **siempre string**, tal como se escribieron: la web no redondea. Permisos en `lib/roles.ts`: `compras:registrar` y `ventas:registrar` (A, C, S), `mermas:registrar` y `ajustes:registrar` (A, C), `comprobantes:anular` (A, C) y `puedeEditarComprobante` (A y C, todo lo registrado; S, solo compras y ventas).
+Pantallas en `src/funcionalidades/comprobantes/`. Decimales (cantidad, costo, valor de venta, tipo de cambio) **siempre string**, tal como se escribieron: la web no redondea. Permisos en `lib/roles.ts`: `compras:registrar` y `ventas:registrar` (A, C, S), `mermas:registrar` y `ajustes:registrar` (A, C), `comprobantes:anular` (A, C) y `puedeEditarComprobante` (A y C, todo lo registrado; S, solo las compras y ventas que registró: `creadoPorId` = id del usuario de la sesión, desde el S9). `ComprobanteDto` trae también `creadoPor` (nombre; `null` si el usuario ya no existe), que el detalle muestra como «Registrado por».
 
 | Llamada | Cuerpo / respuesta |
 |---|---|
@@ -201,7 +201,9 @@ Pantallas en `src/funcionalidades/comprobantes/`. Decimales (cantidad, costo, va
 | `GET /comprobantes?pagina&tamano&naturaleza&desde&hasta&terceroId&productoId&estado&q` | `{datos, total, pagina, tamano}` (la API pagina y filtra) |
 | `GET /comprobantes/:id` | cabecera + líneas con orden, costos y saldo después de cada movimiento |
 
-Las escrituras responden `{comprobante, kardex}`. Después de registrar, editar o anular se invalidan kardex, stock, dashboard, periodos, comprobantes y productos.
+Las escrituras responden `{comprobante, kardex}`. Después de registrar, editar o anular se invalidan kardex, alertas, stock, dashboard, periodos, saldos iniciales, comprobantes y productos (`invalidarTrasEscritura` de `api/claves.ts`).
+
+Mes cerrado **antes de guardar** (S9): el formulario consulta `GET /periodos?anio` del año de la fecha (`useEstadoMes`). Si el mes está `CERRADO`, la Fecha muestra "El mes está cerrado. Para registrar o editar, un usuario Contador o Administrador debe reabrirlo en Periodos." y «Guardar» queda deshabilitado. El 409 `PERIODO_CERRADO` se sigue manejando (el mes pudo cerrarse mientras se llenaba el formulario).
 
 **Dónde se muestra cada error** (`funcionalidades/comprobantes/errores-operacion.ts`, función pura con pruebas):
 
@@ -210,18 +212,52 @@ Las escrituras responden `{comprobante, kardex}`. Después de registrar, editar 
 | 409 `STOCK_NEGATIVO_REQUIERE_CONFIRMACION` | `DialogoStockNegativo` (producto, fecha, disponible antes, saldo resultante; detalle de §5). "Registrar de todos modos" reenvía **la misma petición** con `confirmarStockNegativo: true`. También al editar y al anular |
 | 409 `STOCK_INSUFICIENTE` (política BLOQUEAR) | aviso en el encabezado con producto, fecha y disponible; sin opción de confirmar |
 | 409 `PERIODO_CERRADO` | aviso en el encabezado con el mes según la fecha + error en Fecha |
-| 409 `ORDEN_EN_CONFLICTO` | aviso con **Reintentar**, que reenvía lo mismo (la API revirtió la transacción). Nunca se reintenta solo |
+| 409 `ORDEN_EN_CONFLICTO` · `CONFLICTO_CONCURRENTE` | `AvisoConflicto`: "Otro usuario modificó estos datos al mismo tiempo." con **Reintentar**, que **vuelve a cargar los datos** (invalida las consultas; al editar, recarga el comprobante) y **no reenvía**: la persona revisa y vuelve a guardar. Cambió en el S9 (antes reenviaba) |
 | 409 `COMPROBANTE_DUPLICADO` | junto al Número ("Ya existe la factura F001-0000123 de este proveedor") o al año del informe (merma 13) |
 | 409 `COMPROBANTE_ANULADO` | aviso en el encabezado; el formulario queda en solo lectura |
 | 422 `PRECIO_VENTA_REQUERIDO` | en el valor de venta de la línea (`detalle.linea` si viene; si no, las líneas sin valor) |
 | 422 `TIPO_CAMBIO_REQUERIDO` · `SUSTENTO_REQUERIDO` · `SALDO_INICIAL_INEXISTENTE` · `TERCERO_INEXISTENTE` · `ESTABLECIMIENTO_INEXISTENTE` | junto a Tipo de cambio · Sustento · Fecha · Proveedor/Cliente · Establecimiento |
-| 422 `REORDEN_FUERA_DE_FECHA` | mensaje listo en `lib/errores.ts`; mover movimientos es del Kardex (S9) |
+| 422 `REORDEN_FUERA_DE_FECHA` | aviso al mover en el Kardex (§6.4) |
 | 403 `SIN_PERMISO` al editar siendo solo ASISTENTE | "Solo puedes editar las compras y ventas que registraste tú." |
 | 400 `VALIDACION` | cada campo junto a su control (`terceroId` → Proveedor/Cliente, `lineas.N.costoUnitario`/`valorVentaUnitario` → precio de la línea N) |
 
-Pendientes del contrato para la API del S9:
-- `ComprobanteDto` sin `creadoPorId`: la web no puede ocultar «Editar» al ASISTENTE en compras y ventas que no registró él (hoy lo decide el 403).
-- El OpenAPI no documenta `ORDEN_EN_CONFLICTO`, `TERCERO_INEXISTENTE` ni `ESTABLECIMIENTO_INEXISTENTE`, ni la forma de `detalle` de `STOCK_NEGATIVO_REQUIERE_CONFIRMACION` (la web usa la de §5 y tolera que falten datos).
+Los pendientes del S8 para la API quedaron resueltos en el S9: `ComprobanteDto.creadoPorId`/`creadoPor`, los códigos `ORDEN_EN_CONFLICTO` y `CONFLICTO_CONCURRENTE` en el OpenAPI y el `detalle` de `STOCK_NEGATIVO_REQUIERE_CONFIRMACION` (`StockNegativoDetalleDto`).
+
+### 6.4 Kardex, periodos y saldos iniciales (S9)
+
+Módulos `src/api/kardex.ts`, `src/api/periodos.ts` y `src/api/saldos-iniciales.ts`; pantallas en `src/funcionalidades/kardex/`, `periodos/` y `saldos-iniciales/`. La web **no calcula** costos, saldos ni diferencias: muestra lo que entrega la API, formateado con big.js (`lib/formato.ts`). Permisos en `lib/roles.ts`: `kardex:reordenar` (A, C), `kardex:recalcular` (A), `periodos:cerrar` (A, C; también reabrir), `periodos:cerrar-en-bloque` (A), `periodos:cierre-anual` (A, C) y `saldos:editar` (A, C).
+
+| Llamada | Cuerpo / respuesta | Pantalla |
+|---|---|---|
+| `GET /kardex?productoId&anio&mes?` | `KardexDto`: producto, `saldoInicialAnio` (origen y desactualizado), `saldoInicial`, `meses[]` (estado, SI, subtotales de entradas y salidas, saldo final y `filas[]` con entrada/salida/saldo y `alertas`), `saldoFinal`. Sin `mes`: todo el año | Kardex (filtros en la URL: `?producto&anio&mes=N\|todo&detallado=1`) |
+| `GET /kardex/alertas?anio` | `{anio, totales, alertas[]}` (tipo, producto, movimiento, fecha, documento, mensaje) | Kardex (aviso superior con enlace `#fila-<movimientoId>`), Periodos (saldos negativos del mes antes de cerrar) |
+| `POST /kardex/recalcular` | `{anio, productoId?}` → `{filas, filasCambiadas, saldosDesactualizados[]}` | Kardex (A), para el producto y año elegidos |
+| `POST /movimientos/:id/mover` | `{direccion: "ARRIBA"\|"ABAJO", confirmarStockNegativo?}` → `{comprobante, kardex}` | Kardex (A, C): ↑/↓ solo entre filas de la misma fecha y en meses no cerrados, con confirmación |
+| `GET /periodos?anio` | `{anio, meses[12], anioCompletoCerrado}`; cada mes: `estado` (`ABIERTO`, `CERRADO`, `SIN_PERIODO`), `cerradoEn`/`cerradoPor`, `versionCierre`, `tieneMovimientos`, `libroImpreso`, `asientosExportados[]` | Periodos, chip de la barra superior, aviso de mes cerrado en los formularios |
+| `POST /periodos/:anio/:mes/cerrar` | sin cuerpo → `{periodo, cierres, saldosNegativos[], diferenciasConCierreAnterior[]}` | Periodos (A, C) |
+| `POST /periodos/:anio/:mes/reabrir` | `{motivo}` (obligatorio, hasta 500) → `{periodo, advertencias[]}` | Periodos (A, C), solo el último mes cerrado |
+| `POST /periodos/cerrar-en-bloque` | `{desde: "AAAA-MM", hasta: "AAAA-MM"}` → `{cierres[]}` | Periodos (A) |
+| `GET /periodos/:anio/cierre-anual/vista-previa` | `{mesesAbiertos[], requiereConfirmacion, saldos[]}`; cada saldo: `saldoFinal`, `propuesto` (4 y 2 decimales), `existente`, `comparacion`, `diferencia` (propuesto − existente) y `accion` | Cierre anual, pasos 1 y 2 |
+| `POST /periodos/:anio/cierre-anual` | `{confirmarReemplazo? \| conservarExistentes?, confirmarStockNegativo?}` (no los dos primeros a la vez) → vista + `kardexRecalculados` | Cierre anual, paso 3 |
+| `GET /saldos-iniciales?anio` | `SaldoInicialDto[]`: cantidad, costo total, origen (`IMPORTACION`, `CIERRE_ANUAL`, `MANUAL`), motivo, desactualizado, registrado por | Saldos iniciales (sin C.U.: la API no lo entrega) |
+| `PUT /saldos-iniciales/:id` | `{cantidad (≤ 4 dec.), costoTotal (≤ 10 dec.), motivo, confirmarStockNegativo?}` → el saldo, ahora `MANUAL` | Saldos iniciales (A, C). Solo edita uno existente |
+
+Después de cerrar, reabrir, cerrar en bloque, cierre anual, saldo manual, reordenar o recalcular se invalidan kardex, alertas, periodos, saldos iniciales, comprobantes, stock y dashboard.
+
+**Dónde se muestra cada error:**
+
+| Error | En la pantalla |
+|---|---|
+| 409 `PERIODO_ANTERIOR_ABIERTO` · `PERIODO_POSTERIOR_CERRADO` · `PERIODO_CERRADO` | dentro del diálogo de cerrar / reabrir (mensajes de UI-UX §6) |
+| 422 `PERIODO_FUTURO` · `PERIODO_ANTERIOR_AL_INICIO` · 409 `PERIODO_NO_CERRADO` | dentro del diálogo de cerrar, cerrar en bloque o reabrir, con su mensaje |
+| 409 `CIERRE_CON_SALDO_CERO_CON_COSTO` | el diálogo sigue abierto, con el mensaje del mes y la **lista de movimientos** con enlace al kardex. Se lee `detalle.movimientos[]` (o `filas[]`) con `movimientoId`, `productoId`/`productoCodigo` y `fecha`; si no viene, se usan las alertas `SALDO_CERO_CON_COSTO` del mes |
+| 409 `SALDO_INICIAL_REQUIERE_CONFIRMACION` | el asistente vuelve al paso 2 con el mensaje y recarga la vista previa |
+| 409 `CIERRE_ANUAL_INCOMPLETO` | el asistente vuelve al paso 1 |
+| 409 `STOCK_NEGATIVO_REQUIERE_CONFIRMACION` | `DialogoStockNegativo` y reenvío con `confirmarStockNegativo: true` (mover, cierre anual y saldo manual) |
+| 409 `ORDEN_EN_CONFLICTO` · `CONFLICTO_CONCURRENTE` | `AvisoConflicto` con **Reintentar** que recarga y no reenvía |
+| 422 `REORDEN_FUERA_DE_FECHA` · 409 `COMPROBANTE_ANULADO` al mover | aviso (toast persistente) |
+
+Pendientes del contrato para la API (Sprint 10): ver `docs/AVANCE.md` (S09 → Pendientes para la API).
 
 ## 7. Ejemplos (datos de demostración)
 

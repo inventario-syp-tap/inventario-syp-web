@@ -29,9 +29,9 @@ describe('ubicarErrorOperacion', () => {
     })
   })
 
-  it('409 ORDEN_EN_CONFLICTO → reintentar', () => {
-    expect(ubicarErrorOperacion(error(409, 'ORDEN_EN_CONFLICTO'), ctx())).toEqual({
-      tipo: 'reintentar', mensaje: 'Otro usuario modificó este kardex al mismo tiempo; vuelve a intentarlo.',
+  it.each(['ORDEN_EN_CONFLICTO', 'CONFLICTO_CONCURRENTE'])('409 %s → recargar (sin reenviar)', (codigo) => {
+    expect(ubicarErrorOperacion(error(409, codigo), ctx())).toEqual({
+      tipo: 'recargar', mensaje: 'Otro usuario modificó estos datos al mismo tiempo.',
     })
   })
 
