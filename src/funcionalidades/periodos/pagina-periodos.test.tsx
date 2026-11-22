@@ -104,6 +104,25 @@ describe('Periodos: tarjetas y permisos', () => {
     expect(within(marzo).getByText('1 movimiento')).toBeInTheDocument()
   })
 
+  it('asiento real (S11): Sin asiento, Pendiente, Exportado y Desactualizado, con enlace a Asientos del mes', async () => {
+    const base = periodosAnioDemo(2026, [1, 2, 3])
+    const estados = { 1: 'EXPORTADO', 2: 'DESACTUALIZADO', 3: 'PENDIENTE', 4: 'SIN_ASIENTO' } as const
+    api.en('GET', '/periodos', {
+      ...base,
+      meses: base.meses.map((m) => (m.mes in estados ? { ...m, asiento: { estado: estados[m.mes as keyof typeof estados] } } : m)),
+    })
+    abrir(['inventario:CONSULTA'])
+    await screen.findAllByRole('group')
+    const enero = tarjeta('Enero')
+    expect(within(enero).getByText('Exportado')).toBeInTheDocument()
+    expect(within(enero).getByRole('link', { name: 'Ver asientos de Enero 2026' }))
+      .toHaveAttribute('href', '/inventario/asientos?anio=2026&mes=1')
+    // Igual que el libro 12.1 en la tarjeta: "Desactualizado" (corto), con ícono.
+    expect(within(tarjeta('Febrero')).getByText('Desactualizado')).toBeInTheDocument()
+    expect(within(tarjeta('Marzo')).getAllByText('Pendiente')).toHaveLength(2)
+    expect(within(tarjeta('Abril')).getByText('Sin asiento')).toBeInTheDocument()
+  })
+
   it('CONSULTA y ASISTENTE no ven Cerrar, Reabrir, Cerrar en bloque ni Cierre anual', async () => {
     for (const rol of ['inventario:CONSULTA', 'inventario:ASISTENTE']) {
       const { unmount } = abrir([rol])

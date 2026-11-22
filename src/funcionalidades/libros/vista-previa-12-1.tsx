@@ -1,7 +1,8 @@
 // Vista previa del libro 12.1 (docs/UI-UX.md §5.11): imita la hoja A4 horizontal del PDF, un bloque por mes y
 // producto, con la zona del sello y sin folio. Las cifras se muestran TAL COMO LLEGAN de la API (ya redondeadas como
 // se imprimen: entradas/salidas 3 decimales, saldos y totales 2); aquí no se calcula ni se reformatea nada.
-// La impresión oficial es el PDF de la API: esta vista no se imprime con el navegador (§8).
+// La impresión oficial es el PDF de la API: esta vista no se imprime con el navegador (§8). Un bloque de un mes no
+// cerrado (`borrador`) lleva la misma franja BORRADOR que el PDF.
 import type { BloqueLibro121 } from '@/api/libros'
 
 const celda = 'border border-border px-1.5 py-1'
@@ -13,6 +14,11 @@ function Bloque({ bloque }: { bloque: BloqueLibro121 }) {
   return (
     <article aria-label={titulo}
       className="mx-auto w-full max-w-[1100px] rounded-sm border bg-card p-4 text-xs leading-tight text-card-foreground shadow-sm sm:p-6 print:hidden">
+      {bloque.borrador && (
+        <p className="mb-3 rounded-sm border border-dashed border-warning px-2 py-1 text-center font-semibold">
+          BORRADOR — MES ABIERTO · NO IMPRIMIR EN HOJAS LEGALIZADAS
+        </p>
+      )}
       <header className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 flex-col gap-1">
           <p className="font-semibold">REGISTRO DEL INVENTARIO PERMANENTE EN UNIDADES FÍSICAS</p>

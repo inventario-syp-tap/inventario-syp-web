@@ -53,6 +53,9 @@ export const PERMISOS = {
   /** 13.1 detallado (RUC, razón social y descripción): D-33, Ley 29733. */
   'libros:13-1-detallado': A_C,
   'reportes:excel-contadora': A_C,
+  'asientos:exportar': A_C,
+  'tonelaje:editar': A_C,
+  'tomas:gestionar': A_C,
 } as const satisfies Record<string, readonly Rol[]>
 
 export type Accion = keyof typeof PERMISOS

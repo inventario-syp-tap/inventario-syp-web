@@ -17,6 +17,15 @@ describe('mensajes de error (docs/UI-UX.md §6)', () => {
     expect(mensajeDeError(new ErrorApi(409, 'PERIODO_CERRADO', ''))).toMatch(/^El mes está cerrado: no se puede registrar ni modificar/)
   })
 
+  it('S11: mensajes de asientos y toma de inventario', () => {
+    expect(mensajeDeError(new ErrorApi(422, 'ASIENTO_VACIO', 'x'))).toBe('Este asiento no tiene líneas en el mes: no hay nada que exportar.')
+    expect(mensajeDeError(new ErrorApi(409, 'TOMA_DESACTUALIZADA', 'x'))).toMatch(/^El kardex cambió después de registrar esta toma/)
+    expect(mensajeDeError(new ErrorApi(409, 'TOMA_CON_DIFERENCIAS_PENDIENTES', 'x'))).toMatch(/^Todavía hay productos con diferencia/)
+    expect(mensajeDeError(new ErrorApi(409, 'TOMA_YA_CERRADA', 'x'))).toBe('Esta toma ya está cerrada: no se puede modificar.')
+    expect(mensajeDeError(new ErrorApi(422, 'ACCION_NO_CORRESPONDE', 'x'))).toMatch(/la merma solo se usa con faltantes/)
+    expect(mensajeDeError(new ErrorApi(422, 'OBSERVACION_REQUERIDA', 'x'))).toMatch(/observación/)
+  })
+
   it('incluye el requestId en el error interno', () => {
     expect(mensajeDeError(new ErrorApi(500, 'ERROR_INTERNO', '', undefined, 'abc-123'))).toMatch(/código abc-123/)
   })

@@ -309,7 +309,7 @@ export interface paths {
         };
         /**
          * Libro 12.1 (unidades físicas) con el modo del año: JSON igual a la hoja o PDF A4 horizontal sin folio para la hoja legalizada
-         * @description Las cifras vienen redondeadas como se imprimen (entradas/salidas 3 decimales, saldos y totales 2; D-24). Un bloque por mes y producto.
+         * @description Las cifras vienen redondeadas como se imprimen (entradas/salidas 3 decimales, saldos y totales 2; D-24). Un bloque por mes y producto. Cada bloque informa estadoMes; si el mes no está CERRADO (borrador=true), el PDF lleva en cada página la franja "BORRADOR — MES ABIERTO · NO IMPRIMIR EN HOJAS LEGALIZADAS".
          */
         get: operations["LibrosController_libro121Consultar"];
         put?: never;
@@ -879,6 +879,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/inventario/v1/asientos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Asientos sugeridos del mes por tipo (COSTO_VENTAS, MERMA, DESMEDRO, AJUSTE_FALTANTE, AJUSTE_SOBRANTE): líneas exactas y a 2 decimales, movimientos sin regla y si se puede exportar
+         * @description Funciona también con el mes abierto (vista previa): entonces exportable=false con motivoNoExportable=PERIODO_NO_CERRADO (D-34). Un movimiento sin regla vigente sale en `faltantes` ("falta regla contable", PC-10) y solo bloquea la exportación de su tipo.
+         */
+        get: operations["AsientosController_consultar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/asientos/exportados": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Exportaciones a WinConta del año: la vigente de cada mes y tipo y si quedó desactualizada (el asiento cambió después de exportarlo) */
+        get: operations["AsientosController_exportados"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/asientos/winconta": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archivo .xlsx de 19 columnas para importar el asiento en WinConta (D-20); registra la exportación con su hash
+         * @description Solo meses CERRADOS (409 PERIODO_NO_CERRADO, D-34). numeroAsiento: exactamente 4 dígitos; tipoCambio: > 0 con hasta 3 decimales.
+         */
+        post: operations["AsientosController_exportar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/inventario/v1/reportes/toneladas": {
         parameters: {
             query?: never;
@@ -958,6 +1015,115 @@ export interface paths {
         get: operations["ReportesController_excelContadora"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/control-tonelaje": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tonelaje reportado vs compras del kardex (entradas 02) por mes, con la diferencia; JSON o Excel */
+        get: operations["ControlTonelajeController_consultar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/control-tonelaje/{anio}/{mes}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Registra o reemplaza el tonelaje reportado del mes (por fuente; por defecto "REPORTE EXTERNO") y su observación */
+        put: operations["ControlTonelajeController_registrar"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/tomas-inventario": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tomas de inventario (más recientes primero) */
+        get: operations["TomasInventarioController_listar"];
+        put?: never;
+        /**
+         * Registra una toma: lo contado por producto; calcula el saldo del kardex a esa fecha y la diferencia
+         * @description Saldo a la fecha = el que queda después del último movimiento (en orden) con fecha <= la de la toma. 409 PERIODO_CERRADO si el mes está cerrado.
+         */
+        post: operations["TomasInventarioController_crear"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/tomas-inventario/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Una toma con sus líneas y comprobantes generados */
+        get: operations["TomasInventarioController_obtener"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/tomas-inventario/{id}/resolver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resuelve TODAS las diferencias de una vez: genera como máximo una merma 13 (faltantes con informe técnico) y un ajuste 28 (faltantes y sobrantes al costo promedio), enlazados a la toma
+         * @description Una transacción con el mismo flujo de comprobantes: mes cerrado (409 PERIODO_CERRADO), stock negativo (409 STOCK_NEGATIVO_REQUIERE_CONFIRMACION salvo confirmarStockNegativo), recálculo y auditoría. Si el kardex cambió desde la toma → 409 TOMA_DESACTUALIZADA.
+         */
+        post: operations["TomasInventarioController_resolver"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventario/v1/tomas-inventario/{id}/cerrar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cierra la toma (todas sus diferencias deben estar resueltas; una toma sin diferencias se cierra directo) */
+        post: operations["TomasInventarioController_cerrar"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1208,10 +1374,10 @@ export interface components {
         ErrorNegocioDto: {
             /** @example PERIODO_CERRADO */
             codigo: string;
-            /** @example El periodo 2026-01 estÃ¡ cerrado: â€¦ */
+            /** @example El periodo 2026-01 está cerrado: … */
             mensaje: string;
             /**
-             * @description Datos del error segÃºn el cÃ³digo (ver docs/02 Â§17)
+             * @description Datos del error según el código (ver docs/02 §17)
              * @example {
              *       "periodos": [
              *         "2026-01"
@@ -1257,7 +1423,7 @@ export interface components {
              * @enum {string}
              */
             codigo: "STOCK_NEGATIVO_REQUIERE_CONFIRMACION" | "STOCK_INSUFICIENTE";
-            /** @example La operaciÃ³n deja saldo negativo. ConfÃ­rmala para registrarla con la alerta STOCK_NEGATIVO. */
+            /** @example La operación deja saldo negativo. Confírmala para registrarla con la alerta STOCK_NEGATIVO. */
             mensaje: string;
             detalle: components["schemas"]["StockNegativoDetalleDto"];
         };
@@ -1661,6 +1827,17 @@ export interface components {
             /** @example 25.00 */
             saldoFinal: string;
             totales: components["schemas"]["TotalesLibro121Dto"];
+            /**
+             * @description Estado del periodo del mes del bloque
+             * @example CERRADO
+             * @enum {string}
+             */
+            estadoMes: "ABIERTO" | "CERRADO" | "SIN_PERIODO";
+            /**
+             * @description true si el mes no está CERRADO: el PDF lleva la franja "BORRADOR — MES ABIERTO · NO IMPRIMIR EN HOJAS LEGALIZADAS"
+             * @example false
+             */
+            borrador: boolean;
         };
         Libro121Dto: {
             /** @example 2026 */
@@ -1674,6 +1851,11 @@ export interface components {
             modo: "AGRUPADO" | "DETALLADO";
             /** @description Un bloque por mes y producto (cada uno en página nueva) */
             bloques: components["schemas"]["BloqueLibro121Dto"][];
+            /**
+             * @description true si algún bloque es de un mes que no está CERRADO (el PDF sale como BORRADOR en esos bloques)
+             * @example false
+             */
+            borrador: boolean;
         };
         ImpresionLibro121Dto: {
             /** @example 3 */
@@ -3054,11 +3236,11 @@ export interface components {
         };
         EstadoAsientoMesDto: {
             /**
-             * @description Reservado para el Sprint 11 (exportación a WinConta)
-             * @example PENDIENTE
+             * @description Exportación a WinConta del mes (S11): SIN_ASIENTO si ningún tipo de asiento tiene líneas ni movimientos sin regla; si no, el peor estado de sus tipos: DESACTUALIZADO (cambió después de exportar) > PENDIENTE (sin exportar) > EXPORTADO
+             * @example EXPORTADO
              * @enum {string}
              */
-            estado: "PENDIENTE";
+            estado: "SIN_ASIENTO" | "PENDIENTE" | "EXPORTADO" | "DESACTUALIZADO";
         };
         LibroImpresoDto: {
             /** @example 2026-02-10T15:04:05.000Z */
@@ -3067,7 +3249,7 @@ export interface components {
         AsientoExportadoResumenDto: {
             /** @example COSTO_VENTAS */
             tipoAsiento: string;
-            /** @example 0015 */
+            /** @example 0001 */
             numeroAsiento: string;
             /** @example 2026-02-10T15:04:05.000Z */
             exportadoEn: string;
@@ -3113,7 +3295,7 @@ export interface components {
             porProducto: components["schemas"]["ResumenProductoMesDto"][];
             /** @description Libro 12.1 del mes según el registro de impresiones con hash (D-08) */
             libro121: components["schemas"]["EstadoLibroMesDto"];
-            /** @description Asiento del mes: llega en el Sprint 11 (hoy siempre PENDIENTE) */
+            /** @description Estado de la exportación a WinConta del asiento del mes (S11) */
             asiento: components["schemas"]["EstadoAsientoMesDto"];
             /**
              * @deprecated
@@ -3452,6 +3634,183 @@ export interface components {
              */
             confirmarStockNegativo?: boolean;
         };
+        LineaAsientoDto: {
+            /** @example 691101 */
+            cuenta: string;
+            /**
+             * @example D
+             * @enum {string}
+             */
+            lado: "D" | "H";
+            /**
+             * @description Importe exacto
+             * @example 600.0000000000
+             */
+            exacto: string;
+            /**
+             * @description Suma de cada regla redondeada a 2 decimales (lo que se exporta)
+             * @example 600.00
+             */
+            redondeado: string;
+        };
+        ImporteReglaDto: {
+            /** @example RD-01 */
+            codigo: string;
+            /** @example D-FIERRO */
+            productoCodigo: string;
+            /** @example 01 */
+            tipoOperacion: string;
+            /** @example 691101 */
+            cuentaDebe: string;
+            /** @example 201101 */
+            cuentaHaber: string;
+            /** @example 600.0000000000 */
+            importe: string;
+        };
+        MovimientoSinReglaDto: {
+            /** @example 0b6f2c1e-9a8d-4c7b-b6a5-1234567890ab */
+            movimientoId: string;
+            /** @example 2026-03-20 */
+            fecha: string;
+            /** @example D-FIERRO */
+            productoCodigo: string;
+            /** @example 14 */
+            tipoOperacion: string;
+            /**
+             * @example SALIDA
+             * @enum {string}
+             */
+            tipoMovimiento: "ENTRADA" | "SALIDA";
+            /**
+             * @description Tipo-serie-número
+             * @example 00-AD-0001
+             */
+            documento: string;
+            /** @example 0.5000 */
+            cantidad: string;
+            /**
+             * @description Costo del movimiento (salida o entrada); null si no tiene
+             * @example 30.0000000000
+             */
+            costo: string | null;
+        };
+        ExportacionVigenteDto: {
+            /**
+             * @example EXPORTADO
+             * @enum {string}
+             */
+            estado: "PENDIENTE" | "EXPORTADO" | "DESACTUALIZADO";
+            /** @example 0001 */
+            numeroAsiento: string | null;
+            /** @example 2026-02-10T15:04:05.000Z */
+            exportadoEn: string | null;
+        };
+        AsientoDto: {
+            /**
+             * @example COSTO_VENTAS
+             * @enum {string}
+             */
+            tipoAsiento: "COSTO_VENTAS" | "MERMA" | "DESMEDRO" | "AJUSTE_FALTANTE" | "AJUSTE_SOBRANTE";
+            /** @example PROVISION COSTO DE VENTAS ENERO 2026 */
+            glosa: string;
+            /** @example CV012026 */
+            numeroComprobante: string;
+            /** @description Debe y luego Haber */
+            lineas: components["schemas"]["LineaAsientoDto"][];
+            reglas: components["schemas"]["ImporteReglaDto"][];
+            /** @description Movimientos sin regla contable vigente ("falta regla contable", PC-10): bloquean la exportación de ESTE tipo */
+            faltantes: components["schemas"]["MovimientoSinReglaDto"][];
+            /** @example 600.00 */
+            totalDebe: string;
+            /** @example 600.00 */
+            totalHaber: string;
+            /** @example false */
+            exportable: boolean;
+            /**
+             * @description Por qué no se puede exportar: mes no CERRADO (D-34), movimientos sin regla o asiento sin líneas
+             * @example PERIODO_NO_CERRADO
+             * @enum {string|null}
+             */
+            motivoNoExportable: "PERIODO_NO_CERRADO" | "REGLA_CONTABLE_FALTANTE" | "ASIENTO_VACIO" | null;
+            exportacion: components["schemas"]["ExportacionVigenteDto"];
+        };
+        AsientosMesDto: {
+            /** @example 2026 */
+            anio: number;
+            /** @example 1 */
+            mes: number;
+            /** @example 2026-01 */
+            periodo: string;
+            /**
+             * @example CERRADO
+             * @enum {string}
+             */
+            estadoMes: "ABIERTO" | "CERRADO" | "SIN_PERIODO";
+            asientos: components["schemas"]["AsientoDto"][];
+        };
+        AsientoExportadoDto: {
+            /** @example 1 */
+            id: number;
+            /** @example 2026 */
+            anio: number;
+            /** @example 1 */
+            mes: number;
+            /** @example 2026-01 */
+            periodo: string;
+            /**
+             * @example COSTO_VENTAS
+             * @enum {string}
+             */
+            tipoAsiento: "COSTO_VENTAS" | "MERMA" | "DESMEDRO" | "AJUSTE_FALTANTE" | "AJUSTE_SOBRANTE";
+            /** @example 0001 */
+            numeroAsiento: string;
+            /** @example 3.700 */
+            tipoCambio: string;
+            /** @example 600.00 */
+            totalDebe: string;
+            /** @example winconta_costo-ventas_2026-01.xlsx */
+            archivoNombre: string;
+            /** @example 2026-02-10T15:04:05.000Z */
+            exportadoEn: string;
+            /** @example Contadora Demo */
+            exportadoPor: string | null;
+            /**
+             * @description Última exportación de ese mes y tipo
+             * @example true
+             */
+            vigente: boolean;
+            /**
+             * @description Solo la vigente: el asiento actual (cuentas e importes a 2 decimales) ya no es el exportado
+             * @example false
+             */
+            desactualizado: boolean;
+        };
+        AsientosExportadosDto: {
+            /** @example 2026 */
+            anio: number;
+            exportaciones: components["schemas"]["AsientoExportadoDto"][];
+        };
+        ExportarWinContaDto: {
+            /** @example 2026 */
+            anio: number;
+            /** @example 1 */
+            mes: number;
+            /**
+             * @example COSTO_VENTAS
+             * @enum {string}
+             */
+            tipoAsiento: "COSTO_VENTAS" | "MERMA" | "DESMEDRO" | "AJUSTE_FALTANTE" | "AJUSTE_SOBRANTE";
+            /**
+             * @description Número de asiento de WinConta: exactamente 4 dígitos (texto)
+             * @example 0001
+             */
+            numeroAsiento: string;
+            /**
+             * @description Tipo de cambio que digita la contadora: mayor que 0 y hasta 3 decimales (texto)
+             * @example 3.700
+             */
+            tipoCambio: string;
+        };
         ToneladasMesDto: {
             /**
              * @description null = total del año
@@ -3650,6 +4009,217 @@ export interface components {
             anio: number;
             productos: components["schemas"]["MargenProductoDto"][];
             total: components["schemas"]["MargenTotalDto"];
+        };
+        ReporteTonelajeDto: {
+            /** @example 1 */
+            id: number;
+            /** @example REPORTE EXTERNO */
+            fuente: string;
+            /** @example 22.5000 */
+            toneladasReportadas: string | null;
+            /**
+             * @description Reportado − compras del kardex; null si no hay reporte
+             * @example -0.0000
+             */
+            diferencia: string | null;
+            /** @example false */
+            hayDiferencia: boolean;
+            /** @example ENERO 22.50 TON */
+            nota: string | null;
+            /** @example null */
+            observacion: string | null;
+        };
+        MesTonelajeDto: {
+            /** @example 1 */
+            mes: number;
+            /** @example 2026-01 */
+            periodo: string;
+            /**
+             * @description Compras del kardex: todas las entradas 02 del mes
+             * @example 22.5000
+             */
+            comprasKardex: string;
+            reportes: components["schemas"]["ReporteTonelajeDto"][];
+            /**
+             * @description Algún reporte del mes difiere de las compras del kardex
+             * @example false
+             */
+            hayDiferencia: boolean;
+        };
+        ControlTonelajeDto: {
+            /** @example 2026 */
+            anio: number;
+            /** @description Siempre 12 meses */
+            meses: components["schemas"]["MesTonelajeDto"][];
+            /**
+             * @description Meses con alguna diferencia
+             * @example 1
+             */
+            mesesConDiferencia: number;
+        };
+        RegistrarTonelajeDto: {
+            /**
+             * @description Toneladas que reporta la fuente externa (hasta 4 decimales)
+             * @example 22.5000
+             */
+            toneladasReportadas: string;
+            /**
+             * @description Quién reporta, sin nombres de personas (por defecto "REPORTE EXTERNO", D-25)
+             * @example REPORTE EXTERNO
+             */
+            fuente?: string;
+            /** @example Diferencia por una compra de cobre registrada al mes siguiente */
+            observacion?: string;
+        };
+        ComprobanteTomaDto: {
+            /** @example 0b6f2c1e-9a8d-4c7b-b6a5-1234567890ab */
+            id: string;
+            /**
+             * @example AJUSTE
+             * @enum {string}
+             */
+            naturaleza: "MERMA" | "AJUSTE";
+            /**
+             * @description Tipo-serie-número
+             * @example 00-AI-0001
+             */
+            documento: string;
+        };
+        LineaTomaRespuestaDto: {
+            /** @example 1 */
+            productoId: number;
+            /** @example D-FIERRO */
+            productoCodigo: string;
+            /** @example CHATARRA DE FIERRO DEMO */
+            productoDescripcion: string;
+            /**
+             * @description Saldo del kardex a la fecha
+             * @example 15.0000
+             */
+            cantidadSistema: string;
+            /** @example 14.7500 */
+            cantidadContada: string;
+            /**
+             * @description Contada − sistema
+             * @example -0.2500
+             */
+            diferencia: string;
+            /**
+             * @example FALTANTE
+             * @enum {string}
+             */
+            tipoDiferencia: "FALTANTE" | "SOBRANTE" | "SIN_DIFERENCIA";
+            /**
+             * @description La diferencia está dentro de la tolerancia configurada (tomaInventario.toleranciaDiferenciaTn); igual se resuelve
+             * @example false
+             */
+            dentroDeTolerancia: boolean;
+            /**
+             * @description null mientras no se resuelve (o sin diferencia)
+             * @example null
+             * @enum {string|null}
+             */
+            accion: "MERMA" | "AJUSTE" | "NINGUNA" | null;
+            comprobante: components["schemas"]["ComprobanteTomaDto"] | null;
+            /** @example null */
+            observacion: string | null;
+        };
+        TomaDto: {
+            /** @example 7f1c2a9e-1b2c-4d3e-8f90-1234567890ab */
+            id: string;
+            /** @example 2026-03-31 */
+            fecha: string;
+            /** @example 1 */
+            establecimientoId: number;
+            /**
+             * @example BORRADOR
+             * @enum {string}
+             */
+            estado: "BORRADOR" | "CERRADA";
+            /**
+             * @description Todas las diferencias tienen su acción (ya se puede cerrar)
+             * @example false
+             */
+            resuelta: boolean;
+            /** @example Contadora Demo */
+            responsable: string;
+            /** @example null */
+            observacion: string | null;
+            /** @example Contadora Demo */
+            creadoPor: string | null;
+            /** @example 2026-03-31T20:00:00.000Z */
+            creadoEn: string;
+            lineas: components["schemas"]["LineaTomaRespuestaDto"][];
+            /** @description Merma y ajuste generados desde la toma (enlazados) */
+            comprobantes: components["schemas"]["ComprobanteTomaDto"][];
+        };
+        LineaTomaDto: {
+            /** @example 1 */
+            productoId: number;
+            /**
+             * @description Cantidad contada (pesada) en TN, hasta 4 decimales (0 si no hay)
+             * @example 14.7500
+             */
+            cantidadContada: string;
+        };
+        CrearTomaDto: {
+            /**
+             * @description Fecha de la toma
+             * @example 2026-03-31
+             */
+            fecha: string;
+            /**
+             * @description Por defecto, el 0001
+             * @example 1
+             */
+            establecimientoId?: number;
+            /**
+             * @description Quién hizo el conteo (sustento de la toma). Es un dato personal del trabajador (Ley 29733): solo el nombre o el cargo, nada más; queda en la toma y en la auditoría
+             * @example Contadora Demo
+             */
+            responsable: string;
+            /** @example null */
+            observacion?: string;
+            /** @description Un producto por línea */
+            lineas: components["schemas"]["LineaTomaDto"][];
+        };
+        ResolverLineaDto: {
+            /** @example 1 */
+            productoId: number;
+            /**
+             * @example AJUSTE
+             * @enum {string}
+             */
+            accion: "MERMA" | "AJUSTE" | "NINGUNA";
+            /**
+             * @description Obligatoria con NINGUNA (422 OBSERVACION_REQUERIDA)
+             * @example Diferencia dentro de lo normal por humedad
+             */
+            observacion?: string;
+        };
+        ResolverTomaDto: {
+            /** @description Una decisión por CADA producto con diferencia (ni más ni menos); se resuelve toda la toma de una vez (D-34) */
+            lineas: components["schemas"]["ResolverLineaDto"][];
+            /**
+             * @description Sustento de la merma 13 (informe técnico, D-06); obligatorio si alguna línea es MERMA (422 SUSTENTO_REQUERIDO)
+             * @example INFORME TÉCNICO DE MERMA 2026
+             */
+            sustentoMerma?: string;
+            /**
+             * @description Año del informe técnico (número del documento 00-IT-<año>); por defecto, el de la toma
+             * @example 2026
+             */
+            anioInforme?: number;
+            /**
+             * @description Sustento del ajuste 28 (acta de la toma); obligatorio si alguna línea es AJUSTE (422 SUSTENTO_REQUERIDO)
+             * @example ACTA DE TOMA DE INVENTARIO DEL 31/03/2026
+             */
+            sustentoAjuste?: string;
+            /**
+             * @description Confirma que la merma o el ajuste deja saldo negativo (02 §4). Sin ella → 409 STOCK_NEGATIVO_REQUIERE_CONFIRMACION
+             * @example false
+             */
+            confirmarStockNegativo?: boolean;
         };
     };
     responses: never;
@@ -4114,6 +4684,16 @@ export interface operations {
                     "application/pdf": components["schemas"]["ErrorNegocioDto"];
                 };
             };
+            /** @description DEMASIADAS_SOLICITUDES (más de 20 descargas por minuto) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                    "application/pdf": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
         };
     };
     LibrosController_pruebaMargenes: {
@@ -4131,6 +4711,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description DEMASIADAS_SOLICITUDES (más de 20 descargas por minuto) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": components["schemas"]["ErrorNegocioDto"];
+                };
             };
         };
     };
@@ -4248,6 +4837,17 @@ export interface operations {
             };
             /** @description producto inexistente */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                    "application/pdf": components["schemas"]["ErrorNegocioDto"];
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description DEMASIADAS_SOLICITUDES (más de 20 descargas por minuto) */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5366,6 +5966,145 @@ export interface operations {
             };
         };
     };
+    AsientosController_consultar: {
+        parameters: {
+            query: {
+                anio: number;
+                mes: number;
+                /** @description Sin tipo: los 5 tipos de asiento */
+                tipoAsiento?: "COSTO_VENTAS" | "MERMA" | "DESMEDRO" | "AJUSTE_FALTANTE" | "AJUSTE_SOBRANTE";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AsientosMesDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description DEMASIADAS_SOLICITUDES (más de 20 descargas por minuto) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+        };
+    };
+    AsientosController_exportados: {
+        parameters: {
+            query: {
+                anio: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AsientosExportadosDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description DEMASIADAS_SOLICITUDES (más de 20 descargas por minuto) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+        };
+    };
+    AsientosController_exportar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportarWinContaDto"];
+            };
+        };
+        responses: {
+            /** @description Archivo .xlsx (hoja "Hoja1") */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description PERIODO_NO_CERRADO, CONFLICTO_CONCURRENTE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description REGLA_CONTABLE_FALTANTE (movimientos sin regla vigente en ese tipo), ASIENTO_VACIO */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description DEMASIADAS_SOLICITUDES (más de 20 descargas por minuto) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+        };
+    };
     ReportesController_toneladas: {
         parameters: {
             query: {
@@ -5395,6 +6134,15 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorNegocioDto"];
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description DEMASIADAS_SOLICITUDES (más de 20 descargas por minuto) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
                 };
             };
         };
@@ -5430,6 +6178,15 @@ export interface operations {
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ErrorNegocioDto"];
                 };
             };
+            /** @description DEMASIADAS_SOLICITUDES (más de 20 descargas por minuto) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
         };
     };
     ReportesController_resumenAnual: {
@@ -5461,6 +6218,15 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorNegocioDto"];
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description DEMASIADAS_SOLICITUDES (más de 20 descargas por minuto) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
                 };
             };
         };
@@ -5496,6 +6262,15 @@ export interface operations {
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ErrorNegocioDto"];
                 };
             };
+            /** @description DEMASIADAS_SOLICITUDES (más de 20 descargas por minuto) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
         };
     };
     ReportesController_excelContadora: {
@@ -5523,6 +6298,304 @@ export interface operations {
                 };
                 content: {
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description DEMASIADAS_SOLICITUDES (más de 10 descargas por minuto) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+        };
+    };
+    ControlTonelajeController_consultar: {
+        parameters: {
+            query: {
+                anio: number;
+                formato?: "json" | "xlsx";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ControlTonelajeDto"];
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ControlTonelajeDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description DEMASIADAS_SOLICITUDES (más de 20 descargas por minuto) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+        };
+    };
+    ControlTonelajeController_registrar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                anio: number;
+                mes: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegistrarTonelajeDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MesTonelajeDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+        };
+    };
+    TomasInventarioController_listar: {
+        parameters: {
+            query: {
+                /** @description Año de las tomas (obligatorio: la lista no crece sin límite) */
+                anio: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TomaDto"][];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+        };
+    };
+    TomasInventarioController_crear: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CrearTomaDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TomaDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description PERIODO_CERRADO */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description PRODUCTO_INEXISTENTE, ESTABLECIMIENTO_INEXISTENTE */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+        };
+    };
+    TomasInventarioController_obtener: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TomaDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+        };
+    };
+    TomasInventarioController_resolver: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolverTomaDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TomaDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description TOMA_YA_CERRADA, TOMA_YA_RESUELTA, TOMA_CON_DIFERENCIAS_PENDIENTES, TOMA_DESACTUALIZADA, PERIODO_CERRADO, STOCK_NEGATIVO_REQUIERE_CONFIRMACION, STOCK_INSUFICIENTE, COMPROBANTE_DUPLICADO, ORDEN_EN_CONFLICTO, CONFLICTO_CONCURRENTE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"] | components["schemas"]["ErrorStockNegativoDto"];
+                };
+            };
+            /** @description ACCION_NO_CORRESPONDE, OBSERVACION_REQUERIDA, SUSTENTO_REQUERIDO */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+        };
+    };
+    TomasInventarioController_cerrar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TomaDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
+                };
+            };
+            /** @description TOMA_YA_CERRADA, TOMA_CON_DIFERENCIAS_PENDIENTES */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorNegocioDto"];
                 };
             };
         };

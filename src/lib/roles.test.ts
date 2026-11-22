@@ -68,6 +68,15 @@ describe('comprobantes (S8)', () => {
 })
 
 describe('kardex, periodos y saldos (S9)', () => {
+  it('S11: exportar a WinConta, editar el tonelaje y gestionar tomas solo A y C', () => {
+    for (const accion of ['asientos:exportar', 'tonelaje:editar', 'tomas:gestionar'] as const) {
+      expect(puede(accion, ['inventario:ADMIN'])).toBe(true)
+      expect(puede(accion, ['inventario:CONTADOR'])).toBe(true)
+      expect(puede(accion, ['inventario:ASISTENTE'])).toBe(false)
+      expect(puede(accion, ['inventario:CONSULTA'])).toBe(false)
+    }
+  })
+
   it('reordenar A, C; recalcular solo A', () => {
     expect(puede('kardex:reordenar', ['inventario:CONTADOR'])).toBe(true)
     expect(puede('kardex:reordenar', ['inventario:ASISTENTE'])).toBe(false)

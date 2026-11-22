@@ -303,10 +303,12 @@ export type ArchivoApi = { blob: Blob; contentDisposition: string | null; tipo: 
 export const TIEMPO_DESCARGA_MS = 120_000
 
 /**
- * Descarga un archivo (GET) con las mismas reglas que `solicitar`: token, refresh, un reintento tras 401 y
+ * Descarga un archivo con las mismas reglas que `solicitar`: token, refresh, un reintento tras 401 y
  * "Despertando el servidor…". Los errores llegan igual como ErrorApi (la API responde JSON aunque se pida un PDF).
+ * Normalmente es un GET; con `metodo: 'POST'` y `cuerpo` (exportación a WinConta) es una escritura: ante un 504 o
+ * tiempo agotado no se repite sola, como cualquier escritura.
  */
-export async function solicitarArchivo(ruta: string, opciones: Omit<OpcionesSolicitud, 'metodo' | 'cuerpo'> = {}): Promise<ArchivoApi> {
+export async function solicitarArchivo(ruta: string, opciones: OpcionesSolicitud = {}): Promise<ArchivoApi> {
   const respuesta = await ejecutar(ruta, {
     tiempoMs: TIEMPO_DESCARGA_MS,
     ...opciones,

@@ -131,8 +131,8 @@ Roles: **A** ADMIN · **C** CONTADOR · **S** ASISTENTE · **Q** CONSULTA · "to
 | GET | `/asientos?anio&mes` (por tipo de asiento) · `/asientos/exportados?anio` | todos | Asientos |
 | POST | `/asientos/winconta` (`{anio, mes, tipoAsiento, numeroAsiento, tipoCambio}`) | A, C | Asientos (descarga .xlsx) |
 | GET / PUT | `/control-tonelaje?anio&formato` · `/control-tonelaje/:anio/:mes` | todos / A, C | Control de tonelaje |
-| GET / POST | `/tomas-inventario` | todos / A, C | Toma de inventario |
-| POST | `/tomas-inventario/:id/resolver` | A, C | Toma de inventario |
+| GET / POST | `/tomas-inventario?anio` · `/tomas-inventario` · `GET /tomas-inventario/:id` | todos / A, C | Toma de inventario |
+| POST | `/tomas-inventario/:id/resolver` · `/tomas-inventario/:id/cerrar` | A, C | Toma de inventario |
 | GET | `/dashboard?anio` | todos | Dashboard |
 | POST | `/importacion/historico` | A | Importación y paridad |
 | GET | `/importacion/paridad` (sin filtros) | A, C | Importación y paridad, Paridad con Excel |
@@ -233,7 +233,7 @@ Módulos `src/api/kardex.ts`, `src/api/periodos.ts` y `src/api/saldos-iniciales.
 | `GET /kardex/alertas?anio` | `{anio, totales, alertas[]}` (tipo, producto, movimiento, fecha, documento, mensaje) | Kardex (aviso superior con enlace `#fila-<movimientoId>`), Periodos (saldos negativos del mes antes de cerrar) |
 | `POST /kardex/recalcular` | `{anio, productoId?}` → `{filas, filasCambiadas, saldosDesactualizados[]}` | Kardex (A), para el producto y año elegidos |
 | `POST /movimientos/:id/mover` | `{direccion: "ARRIBA"\|"ABAJO", confirmarStockNegativo?}` → `{comprobante, kardex}` | Kardex (A, C): ↑/↓ solo entre filas de la misma fecha y en meses no cerrados, con confirmación |
-| `GET /periodos?anio` | `{anio, meses[12], anioCompletoCerrado}`; cada mes: `estado` (`ABIERTO`, `CERRADO`, `SIN_PERIODO`), `cerradoEn`/`cerradoPor`, `versionCierre`, `movimientos`, `comprasTn`, `ventasTn`, `porProducto[]` (por producto: movimientos y TN), `libro121` (`{estado: PENDIENTE\|IMPRESO\|DESACTUALIZADO, impresoEn}`) y `asiento` (`{estado: PENDIENTE}` hasta el S11). `libroImpreso` está obsoleto (se quita en el S13): **la web ya no lo usa** | Periodos (tarjetas con movimientos, TN y estado del libro con enlace al 12.1), chip de la barra superior, aviso de mes cerrado en los formularios, estado del mes en el Libro 12.1 |
+| `GET /periodos?anio` | `{anio, meses[12], anioCompletoCerrado}`; cada mes: `estado` (`ABIERTO`, `CERRADO`, `SIN_PERIODO`), `cerradoEn`/`cerradoPor`, `versionCierre`, `movimientos`, `comprasTn`, `ventasTn`, `porProducto[]` (por producto: movimientos y TN), `libro121` (`{estado: PENDIENTE\|IMPRESO\|DESACTUALIZADO, impresoEn}`), `asiento` (`{estado: SIN_ASIENTO\|PENDIENTE\|EXPORTADO\|DESACTUALIZADO}`, real desde el S11: el peor estado de los tipos del mes) y `asientosExportados[]`. `libroImpreso` está obsoleto (se quita en el S13): **la web ya no lo usa** | Periodos (tarjetas con movimientos, TN y estado del libro con enlace al 12.1), chip de la barra superior, aviso de mes cerrado en los formularios, estado del mes en el Libro 12.1 |
 | `POST /periodos/:anio/:mes/cerrar` | sin cuerpo → `{periodo, cierres, saldosNegativos[], diferenciasConCierreAnterior[]}` | Periodos (A, C) |
 | `POST /periodos/:anio/:mes/reabrir` | `{motivo}` (obligatorio, hasta 500) → `{periodo, advertencias[]}` | Periodos (A, C), solo el último mes cerrado |
 | `POST /periodos/cerrar-en-bloque` | `{desde: "AAAA-MM", hasta: "AAAA-MM"}` → `{cierres[]}` | Periodos (A) |
@@ -267,7 +267,7 @@ Módulos `src/api/libros.ts`, `src/api/reportes.ts` y `src/api/descargas.ts`; pa
 
 | Llamada | Cuerpo / respuesta | Pantalla |
 |---|---|---|
-| `GET /libros/12-1?anio&mes?&productoId?` | `Libro121Dto`: `modo` (`AGRUPADO`/`DETALLADO`) y `bloques[]` (uno por mes y producto: cabecera, saldo inicial, filas, totales, saldo final). Sin `mes`: año completo; sin `productoId`: todos | Libro 12.1 (vista previa tipo hoja A4) |
+| `GET /libros/12-1?anio&mes?&productoId?` | `Libro121Dto`: `modo` (`AGRUPADO`/`DETALLADO`), `bloques[]` (uno por mes y producto: cabecera, saldo inicial, filas, totales, saldo final y, desde el S11, `estadoMes` y `borrador`) y `borrador` (algún bloque es de un mes no cerrado: el PDF sale con la franja BORRADOR). Sin `mes`: año completo; sin `productoId`: todos | Libro 12.1 (vista previa tipo hoja A4; con `borrador`, aviso junto a «Descargar PDF» y la franja en cada bloque) |
 | `GET /libros/12-1?…&formato=pdf` | PDF A4 horizontal sin folio | Libro 12.1 «Descargar PDF» (todos) |
 | `GET /libros/12-1/prueba-margenes` | PDF de una página (área imprimible y zona del sello) | Libro 12.1 (A, C) |
 | `GET /libros/12-1/impresiones?anio` | `{impresiones[], meses[12]}`: estado por mes (`PENDIENTE`, `IMPRESO`, `DESACTUALIZADO`, `impresoEn`) e historial (`impresoEn`, `impresoPor`, `observacion`, `vigente`, `reimpresion`) | Libro 12.1 (estado del mes e impresiones registradas) |
@@ -288,7 +288,46 @@ Módulos `src/api/libros.ts`, `src/api/reportes.ts` y `src/api/descargas.ts`; pa
 | 429 (cualquier código) | Llegaste al límite de descargas por minuto. Espera un momento y vuelve a intentarlo. |
 | otro | el de UI-UX §6 según el `codigo` |
 
-**Pendiente en el OpenAPI** (anotado para la API del Sprint 11 en `docs/AVANCE.md`): el 429 de las descargas de `/libros` y `/reportes`, el rol de `GET /libros/12-1/prueba-margenes` y el 409 `PERIODO_NO_CERRADO` de la descarga del 12.1 si la API lo devuelve.
+**Pendiente en el OpenAPI** (anotado para la API del Sprint 11 en `docs/AVANCE.md`): el 429 de las descargas de `/libros` y `/reportes`, el rol de `GET /libros/12-1/prueba-margenes` y el 409 `PERIODO_NO_CERRADO` de la descarga del 12.1 si la API lo devuelve. El OpenAPI del S11 ya documenta el 429 de `/reportes` y `/asientos`.
+
+### 6.6 Asientos, control de tonelaje y toma de inventario (S11)
+
+Módulos `src/api/asientos.ts`, `src/api/control-tonelaje.ts` y `src/api/tomas-inventario.ts`; pantallas en `src/funcionalidades/asientos/`, `control-tonelaje/` y `toma-inventario/`. La web **no calcula** importes, diferencias ni saldos: muestra lo que entrega la API. Solo compara Debe = Haber con big.js para el texto "Cuadra". Permisos en `lib/roles.ts`: `asientos:exportar`, `tonelaje:editar` y `tomas:gestionar` (crear, resolver y cerrar), los tres A y C.
+
+| Llamada | Cuerpo / respuesta | Pantalla |
+|---|---|---|
+| `GET /asientos?anio&mes` | `AsientosMesDto`: `estadoMes` y `asientos[]` (uno por tipo: `COSTO_VENTAS`, `MERMA`, `DESMEDRO`, `AJUSTE_FALTANTE`, `AJUSTE_SOBRANTE`). Cada uno trae `glosa`, `numeroComprobante`, `lineas[]` (`cuenta`, `lado` D/H, `exacto` y `redondeado` a 2 decimales), `reglas[]`, `faltantes[]` (movimientos sin regla), `totalDebe`, `totalHaber`, `exportable`, `motivoNoExportable` (`PERIODO_NO_CERRADO`, `REGLA_CONTABLE_FALTANTE`, `ASIENTO_VACIO`) y `exportacion` (`{estado, numeroAsiento, exportadoEn}`). Funciona también con el mes abierto (vista previa) | Asientos (`?anio&mes&grupo`): una pestaña por grupo (Ajustes reúne faltante y sobrante) |
+| `GET /asientos/exportados?anio` | `{anio, exportaciones[]}`: mes, tipo, `numeroAsiento`, `tipoCambio`, `totalDebe`, `archivoNombre`, `exportadoEn`, `exportadoPor`, `vigente` (la última de ese mes y tipo) y `desactualizado` (solo la vigente) | Asientos: historial del año |
+| `POST /asientos/winconta` | `{anio, mes, tipoAsiento, numeroAsiento (4 dígitos, texto), tipoCambio (> 0, ≤ 3 decimales, texto)}` → `.xlsx` de 19 columnas (Content-Disposition) y registra la exportación | Asientos «Exportar a WinConta» (A, C) |
+| `GET /control-tonelaje?anio&formato?` | `{anio, meses[12], mesesConDiferencia}`; cada mes: `comprasKardex` (entradas 02), `hayDiferencia` y `reportes[]` (`fuente`, `toneladasReportadas`, `diferencia` = reportado − compras, `hayDiferencia`, `nota`, `observacion`). Con `formato=xlsx`, el Excel | Control de tonelaje (y «Descargar Excel») |
+| `PUT /control-tonelaje/:anio/:mes` | `{toneladasReportadas (≤ 4 dec., obligatorio), fuente? ("REPORTE EXTERNO" por defecto), observacion?}` → el mes. Registra o **reemplaza** el reporte de esa fuente | Control de tonelaje (A, C). Al editar, la fuente queda fija; una observación vacía no se envía |
+| `GET /tomas-inventario?anio` | `TomaDto[]` (más recientes primero): fecha, establecimiento, `estado` (`BORRADOR`, `CERRADA`), `resuelta`, responsable, observación, creado por/en, `lineas[]` y `comprobantes[]` | Toma de inventario (lista) |
+| `POST /tomas-inventario` | `{fecha, establecimientoId? (0001 por defecto), responsable, observacion?, lineas: [{productoId, cantidadContada (≤ 4 dec.)}]}` → la toma con `cantidadSistema` (saldo del kardex a la fecha), `diferencia`, `tipoDiferencia` (`FALTANTE`, `SOBRANTE`, `SIN_DIFERENCIA`) y `dentroDeTolerancia` | Nueva toma (pasos 1 y 2) y «Volver a calcular» |
+| `GET /tomas-inventario/:id` | la toma | Detalle (pasos 3 y 4) |
+| `POST /tomas-inventario/:id/resolver` | `{lineas: [{productoId, accion: MERMA\|AJUSTE\|NINGUNA, observacion?}] (una por cada producto con diferencia), sustentoMerma?, anioInforme?, sustentoAjuste?, confirmarStockNegativo?}` → la toma con sus `comprobantes` (como máximo una merma 13 y un ajuste 28, enlazados) | Detalle, paso 4 (A, C) |
+| `POST /tomas-inventario/:id/cerrar` | sin cuerpo → la toma `CERRADA` (todas las diferencias resueltas; sin diferencias se cierra directo) | Detalle, «Cerrar toma» (A, C) |
+
+**Exportar a WinConta**: `descargarArchivoPost` → `solicitarArchivo` con `metodo: 'POST'` y `cuerpo` (mismo token, refresh, "Despertando el servidor…" y 120 s). Al ser una escritura, ante un 504 o tiempo agotado **no se repite sola** (`SIN_RESPUESTA`). Tras exportar se invalidan asientos, periodos y dashboard.
+
+Además, toda escritura (`invalidarTrasEscritura`) invalida ahora asientos, control de tonelaje y tomas: el asiento exportado puede quedar desactualizado, las compras del kardex cambian y una toma en borrador puede quedar desactualizada.
+
+**Dónde se muestra cada error:**
+
+| Error | En la pantalla |
+|---|---|
+| 409 `PERIODO_NO_CERRADO` (exportar) | en el diálogo: "Ese mes aún no está cerrado: el asiento se exporta a WinConta después de cerrarlo en Periodos." y se recargan los asientos |
+| 422 `REGLA_CONTABLE_FALTANTE` · `ASIENTO_VACIO` (exportar) | en el diálogo, con su mensaje, y se recargan los asientos |
+| 400 `VALIDACION` (exportar, tonelaje, nueva toma) | junto al campo (`numeroAsiento`, `tipoCambio`, `toneladasReportadas`, `fuente`, `observacion`, `fecha`, `responsable`) |
+| 429 (exportar) | "Llegaste al límite de descargas por minuto…" |
+| 409 `PERIODO_CERRADO` (nueva toma) | el asistente vuelve al paso 1 con el mensaje en la Fecha (también se avisa antes, con `useEstadoMes`) |
+| 409 `STOCK_NEGATIVO_REQUIERE_CONFIRMACION` (resolver) | `DialogoStockNegativo` del S8 y reenvío con `confirmarStockNegativo: true` |
+| 409 `TOMA_DESACTUALIZADA` (resolver) | aviso con **Volver a calcular**: `POST /tomas-inventario` con la misma fecha, establecimiento, responsable, observación y cantidades, y abre la toma nueva. La anterior queda en BORRADOR y la lista la marca "Reemplazada por la toma del <fecha y hora>" (otra toma posterior de la misma fecha y establecimiento) |
+| 409 `TOMA_YA_RESUELTA` · `TOMA_YA_CERRADA` · `TOMA_CON_DIFERENCIAS_PENDIENTES` | mensaje en el paso 4 y se recarga la toma |
+| 422 `ACCION_NO_CORRESPONDE` · `OBSERVACION_REQUERIDA` · `SUSTENTO_REQUERIDO` | mensaje en el paso 4 (zod ya los valida antes de enviar) |
+| 409 `PERIODO_CERRADO` (resolver) | mensaje con el mes |
+| 409 `CONFLICTO_CONCURRENTE` · `ORDEN_EN_CONFLICTO` | `AvisoConflicto` (recarga, no reenvía) |
+
+**Pendiente para la API (S12)**: un endpoint para anular o recalcular una toma en BORRADOR, para que no queden tomas sueltas al «Volver a calcular».
 
 
 ## 7. Ejemplos (datos de demostración)

@@ -390,4 +390,24 @@ describe('cliente de la API: descargas de archivos', () => {
     usarFetch(() => new Response('', { status: 429 }))
     await expect(p.cliente.solicitarArchivo('/reportes/toneladas?anio=2026&formato=xlsx')).rejects.toMatchObject({ status: 429, codigo: 'DEMASIADAS_SOLICITUDES' })
   })
+
+  it('solicitarArchivo con POST (WinConta): envía el cuerpo JSON y, como escritura, no se repite ante un 504', async () => {
+    const p = await abrirPestana()
+    p.sesion.establecerSesion('token-demo', usuarioDemo())
+    const cuerpo = { anio: 2026, mes: 1, tipoAsiento: 'COSTO_VENTAS', numeroAsiento: '0001', tipoCambio: '3.750' }
+    const simulado = usarFetch(() => new Response('xlsx-demo', {
+      status: 200, headers: { 'Content-Disposition': 'attachment; filename="winconta_costo-ventas_2026-01.xlsx"' },
+    }))
+    const archivo = await p.cliente.solicitarArchivo('/asientos/winconta', { metodo: 'POST', cuerpo })
+    const [url, init] = simulado.mock.calls[0]
+    expect(url).toBe('/api/inventario/v1/asientos/winconta')
+    expect(init?.method).toBe('POST')
+    expect(JSON.parse(String(init?.body))).toEqual(cuerpo)
+    expect(new Headers(init?.headers).get('Content-Type')).toBe('application/json')
+    expect(await archivo.blob.text()).toBe('xlsx-demo')
+
+    const sinRespuesta = usarFetch(() => new Response('', { status: 504 }))
+    await expect(p.cliente.solicitarArchivo('/asientos/winconta', { metodo: 'POST', cuerpo })).rejects.toMatchObject({ codigo: 'SIN_RESPUESTA' })
+    expect(sinRespuesta).toHaveBeenCalledTimes(1)
+  })
 })

@@ -1,12 +1,14 @@
 // Tarjeta de un mes (docs/UI-UX.md §5.9): estado con ícono y texto, número de movimientos, TN de compras y ventas
 // (con el detalle por producto), libro 12.1 (Pendiente / Impreso / Desactualizado, con enlace al libro del mes) y
-// asiento (Pendiente hasta el S11). Todo tal como lo entrega PeriodoDto: la web no suma nada.
+// asiento (Sin asiento / Pendiente / Exportado / Desactualizado, con enlace a Asientos del mes; S11). Todo tal como
+// lo entrega PeriodoDto: la web no suma nada.
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
-import { ArrowDownToLineIcon, ArrowUpFromLineIcon, BookOpenIcon, CircleDashedIcon, LandmarkIcon, ListIcon, LockOpenIcon, LockIcon } from 'lucide-react'
+import { ArrowDownToLineIcon, ArrowUpFromLineIcon, BookOpenIcon, LandmarkIcon, ListIcon, LockOpenIcon, LockIcon } from 'lucide-react'
 import type { Periodo } from '@/api/periodos'
 import { RAIZ_MODULO } from '@/app/paginas'
 import { ChipEstadoPeriodo } from '@/componentes/comunes/chip-estado-periodo'
+import { EstadoAsiento } from '@/componentes/comunes/estado-asiento'
 import { EstadoLibro121 } from '@/componentes/comunes/estado-libro-121'
 import { Button } from '@/componentes/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componentes/ui/card'
@@ -82,11 +84,13 @@ export function TarjetaPeriodo({ periodo: p, puedeCerrar, puedeReabrir, alCerrar
             </Link>
           </Dato>
           <Dato icono={<LandmarkIcon aria-hidden="true" className={icono} />} termino="Asiento">
-            Asiento:{' '}
-            <span className="inline-flex items-center gap-1 text-muted-foreground">
-              <CircleDashedIcon aria-hidden="true" className="size-3.5" />
-              Pendiente
+            <span className="inline-flex flex-wrap items-center gap-x-1">
+              Asiento: <EstadoAsiento estado={p.asiento.estado} corto />
             </span>
+            <Link className="block w-fit text-xs underline underline-offset-2" aria-label={`Ver asientos de ${nombre}`}
+              to={`${RAIZ_MODULO}/asientos?anio=${p.anio}&mes=${p.mes}`}>
+              Ver asientos
+            </Link>
           </Dato>
           {p.estado === 'CERRADO' && p.cerradoEn && (
             <div>

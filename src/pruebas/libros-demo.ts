@@ -17,12 +17,13 @@ export function bloque121Demo(datos: Partial<BloqueLibro121> = {}): BloqueLibro1
     ],
     saldoFinal: '15.00',
     totales: { entradas: '25.00', salidas: '10.00' },
+    estadoMes: 'CERRADO', borrador: false,
     ...datos,
   }
 }
 
 export function libro121Demo(datos: Partial<Libro121> = {}): Libro121 {
-  return { anio: 2026, mes: 1, modo: 'AGRUPADO', bloques: [bloque121Demo()], ...datos }
+  return { anio: 2026, mes: 1, modo: 'AGRUPADO', bloques: [bloque121Demo()], borrador: false, ...datos }
 }
 
 export function impresionesDemo(datos: Partial<ImpresionesLibro121> = {}): ImpresionesLibro121 {
