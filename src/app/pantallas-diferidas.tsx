@@ -27,6 +27,13 @@ export const PaginaLibro131 = lazy(() => import('@/funcionalidades/libros/pagina
 export const PaginaReporte = lazy(() => import('@/funcionalidades/reportes/pagina-reporte').then((m) => ({ default: m.PaginaReporte })))
 export const PaginaExcelContadora = lazy(() =>
   import('@/funcionalidades/reportes/pagina-excel-contadora').then((m) => ({ default: m.PaginaExcelContadora })))
+export const PaginaAsientos = lazy(() => import('@/funcionalidades/asientos/pagina-asientos').then((m) => ({ default: m.PaginaAsientos })))
+export const PaginaControlTonelaje = lazy(() =>
+  import('@/funcionalidades/control-tonelaje/pagina-control-tonelaje').then((m) => ({ default: m.PaginaControlTonelaje })))
+const tomas = () => import('@/funcionalidades/toma-inventario/paginas-toma')
+export const PaginaTomas = lazy(() => tomas().then((m) => ({ default: m.PaginaTomas })))
+export const PaginaNuevaToma = lazy(() => tomas().then((m) => ({ default: m.PaginaNuevaToma })))
+export const PaginaDetalleToma = lazy(() => tomas().then((m) => ({ default: m.PaginaDetalleToma })))
 
 /** Mientras llega el código de la pantalla: esqueleto (nunca en blanco, docs/UI-UX.md §6). */
 export function CargandoPantalla() {

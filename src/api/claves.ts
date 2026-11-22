@@ -10,6 +10,9 @@ export const CLAVES = {
   saldosIniciales: ['saldos-iniciales'],
   libro121: ['libro-12-1'],
   reportes: ['reportes'],
+  asientos: ['asientos'],
+  controlTonelaje: ['control-tonelaje'],
+  tomas: ['tomas-inventario'],
   comprobantes: ['comprobantes'],
   paridad: ['importacion', 'paridad'],
   catalogos: ['catalogos'],
@@ -24,7 +27,8 @@ export const CLAVES = {
 /**
  * Lo que cambia cuando se registra, edita, anula, reordena, recalcula o cierra algo (o se carga el histórico):
  * kardex, alertas, stock, dashboard, periodos, saldos iniciales, comprobantes, libro 12.1 (su estado de impresión puede
- * quedar desactualizado) y reportes.
+ * quedar desactualizado), reportes, asientos (la exportación puede quedar desactualizada), control de tonelaje
+ * (compras del kardex) y tomas de inventario (una toma en borrador puede quedar desactualizada).
  */
 export const CLAVES_AFECTADAS_POR_ESCRITURA = [
   CLAVES.kardex,
@@ -36,6 +40,9 @@ export const CLAVES_AFECTADAS_POR_ESCRITURA = [
   CLAVES.comprobantes,
   CLAVES.libro121,
   CLAVES.reportes,
+  CLAVES.asientos,
+  CLAVES.controlTonelaje,
+  CLAVES.tomas,
 ] as const
 
 /**

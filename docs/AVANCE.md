@@ -16,7 +16,7 @@
 | S8 Operaciones (WEB) | ✅ terminado | `sprint/08-operaciones` | 07/11/2026 |
 | S9 Kardex y periodos (WEB) | ✅ terminado | `sprint/09-kardex-periodos` | 15/11/2026 |
 | S10 Libros y reportes (WEB) | ✅ terminado | `sprint/10-libros-reportes` | 15/11/2026 |
-| S11 Contabilidad y control (WEB) | pendiente | `sprint/11-contabilidad-control` | |
+| S11 Contabilidad y control (WEB) | ✅ terminado | `sprint/11-contabilidad-control` | 21/11/2026 |
 | S12 Dashboard y datos (WEB) | pendiente | `sprint/12-dashboard-datos` | |
 | S13 Calidad y entrega (WEB) | pendiente | `sprint/13-calidad-entrega` | |
 
@@ -544,3 +544,109 @@ Quedan dos de severidad baja, opcionales:
 **Cómo probar las correcciones**
 1. En **Margen** (`/inventario/reportes/margen?anio=<año>`) elige un año sin ventas con precio: aparece el aviso con las TN y el costo de las ventas sin precio, sin gráfico, y la tabla sigue. Con un año con ventas con precio, el gráfico se ve como antes.
 2. En **Periodos**, como `contadora.demo@syp.invalid`, reabre el último mes cerrado, registra un cambio y vuelve a cerrarlo: el aviso dice, por ejemplo, "(compras TN, compras S/, saldo final TN, saldo final S/)".
+
+### S11 — contabilidad-control (21/11/2026)
+
+Rama `sprint/11-contabilidad-control`. Tipos regenerados con `pnpm run api:tipos` desde `../inventario-syp-api/docs/openapi.json` del S11 de la API (+1102 / −29 líneas en `src/api/esquema.d.ts`):
+- 9 rutas nuevas: `GET /asientos`, `GET /asientos/exportados`, `POST /asientos/winconta`, `GET /control-tonelaje`, `PUT /control-tonelaje/{anio}/{mes}`, `GET`/`POST /tomas-inventario`, `GET /tomas-inventario/{id}` y `POST /tomas-inventario/{id}/resolver` y `/cerrar`.
+- Esquemas nuevos de asientos, control de tonelaje y tomas.
+- Cambios en esquemas existentes:
+  - `PeriodoDto.asiento.estado` ahora es `SIN_ASIENTO | PENDIENTE | EXPORTADO | DESACTUALIZADO`;
+  - `Libro121Dto.borrador` y, en cada bloque, `estadoMes` y `borrador`;
+  - las descargas de `/reportes` documentan el 429.
+
+**Qué se hizo**
+- **Asientos y WinConta** (`/inventario/asientos?anio&mes&grupo`, todos; exportar A y C):
+  - pestañas Costo de ventas, Mermas, Desmedros y Ajustes (este último con faltante y sobrante);
+  - por tipo: glosa, comprobante, estado de la exportación y tabla Cuenta · Debe · Haber, con el importe exacto en tooltip (también con el teclado) y los totales con "✓ Cuadra";
+  - desplegable «Reglas aplicadas»;
+  - aviso "Falta regla contable" con la lista de movimientos sin regla y el enlace a Reglas contables (⚠ también en la pestaña). Solo bloquea la exportación de ese tipo;
+  - si `exportable` es false, el motivo que manda la API (mes abierto = vista previa, falta regla, sin líneas).
+  - **Exportar a WinConta**: diálogo con N.° de asiento (exactamente 4 dígitos) y tipo de cambio (> 0, hasta 3 decimales), validados con zod en español. Descarga el `.xlsx` con el manejo de descargas del S10 (`descargarArchivoPost` → `solicitarArchivo` con POST). Mensajes propios para 409 `PERIODO_NO_CERRADO`, 422 `REGLA_CONTABLE_FALTANTE` y `ASIENTO_VACIO` (estos tres además recargan los asientos), 429, 400 `VALIDACION` (marca el campo) y `CONFLICTO_CONCURRENTE` (`AvisoConflicto`).
+  - **Historial de exportaciones del año**: ✓ Vigente · ⚠ Desactualizado: vuelve a exportar · Reemplazada (ícono + texto).
+- **Control de tonelaje** (`/inventario/control-tonelaje?anio`, todos; editar A y C):
+  - tabla de 12 meses (Mes · Toneladas reportadas · Fuente · Compras del kardex · Diferencia · Observación), una fila por reporte;
+  - las diferencias con fondo `warning` suave, ícono, el texto "Diferencia" y la cifra, más un aviso con los meses con diferencia;
+  - diálogo **Editar / Registrar**: toneladas con 4 decimales, fuente "REPORTE EXTERNO" por defecto (fija al editar un reporte existente) y observación;
+  - **Descargar Excel**.
+- **Toma de inventario** (`/inventario/toma-inventario`, `/nueva` y `/:id`):
+  - **Lista** por año: fecha, responsable, productos con diferencia, estado, comprobantes (enlaces) y Resolver/Cerrar/Ver. Una toma en BORRADOR con otra posterior de la misma fecha se marca "Reemplazada por la toma del <fecha y hora>" (ícono + texto) y no se ofrece resolverla.
+  - **Nueva toma** (A, C), pasos 1–2: fecha (aviso y bloqueo si el mes está cerrado), responsable, observación y la cantidad contada de cada producto activo. Indicador de pasos y foco en el título de cada paso. 409 `PERIODO_CERRADO` → vuelve al paso 1 con el mensaje en la Fecha.
+  - **Detalle**:
+    - paso 3: sistema, contado, diferencia y tipo (Faltante / Sobrante / Sin diferencia, "Dentro de la tolerancia");
+    - paso 4 (A, C): Merma (solo faltantes; sustento y año del informe), Ajuste (sustento del acta) o Ninguna (observación), validados con zod → «Resolver diferencias»;
+    - luego «Cerrar toma» con confirmación;
+    - enlaces a los comprobantes de merma y ajuste generados.
+  - Errores: `DialogoStockNegativo` del S8 con reenvío confirmado. `TOMA_DESACTUALIZADA` → aviso con **Volver a calcular** (crea una toma nueva con la misma fecha, establecimiento, responsable, observación y cantidades, y la abre). Mensajes para `TOMA_CON_DIFERENCIAS_PENDIENTES`, `TOMA_YA_RESUELTA`, `TOMA_YA_CERRADA`, `ACCION_NO_CORRESPONDE`, `OBSERVACION_REQUERIDA` y `PERIODO_CERRADO`.
+- **Libro 12.1**: si el JSON trae `borrador`, junto a «Descargar PDF» aparece "El PDF saldrá con la marca BORRADOR: no lo imprimas en las hojas legalizadas hasta cerrar el mes." y cada bloque de la vista previa lleva la franja BORRADOR, como el PDF.
+- **Periodos**: el asiento del mes es real (`EstadoAsiento`, nuevo común: Sin asiento · Pendiente · ✓ Exportado · ⚠ Desactualizado), mostrado igual que el del libro 12.1, con el enlace «Ver asientos» a `/inventario/asientos?anio&mes`.
+- Permisos (`lib/roles.ts`): `asientos:exportar`, `tonelaje:editar` y `tomas:gestionar` (A, C).
+- Mensajes (`lib/errores.ts`): `ASIENTO_VACIO`, `TOMA_DESACTUALIZADA`, `TOMA_CON_DIFERENCIAS_PENDIENTES`, `TOMA_YA_CERRADA`, `TOMA_YA_RESUELTA`, `ACCION_NO_CORRESPONDE` y `OBSERVACION_REQUERIDA`.
+- `invalidarTrasEscritura` incluye asientos, control de tonelaje y tomas.
+- Documentación: `CONTRATO-API.md` §6 (tabla), §6.4, §6.5 y §6.6 (nuevo); `UI-UX.md` §3, §4, §5.9, §5.11, §5.13–5.15 y §6.
+
+**Decisiones** (aprobadas por el equipo antes de implementar)
+- **«Volver a calcular»** crea una toma nueva con los mismos datos, porque la API no tiene un endpoint para recalcular ni anular una toma. La anterior queda en BORRADOR y la lista la marca "Reemplazada por la toma del <fecha y hora>".
+  - Se considera "posterior" la que tiene un `creadoEn` mayor, la misma fecha y el mismo establecimiento.
+  - El detalle de una toma reemplazada enlaza a la vigente y no deja resolverla.
+- **Control de tonelaje**: el PUT exige las toneladas, así que el diálogo siempre las pide. La fuente es fija al editar, porque la API reemplaza el reporte de esa fuente. Una observación vacía no se envía.
+- **Líneas del asiento**: Cuenta · Debe · Haber (`LineaAsientoDto` no trae descripción) más el desplegable «Reglas aplicadas». Se muestran los importes `redondeado` (lo que se exporta) y el `exacto` en tooltip. "Cuadra" solo compara `totalDebe` y `totalHaber` con big.js; no suma nada.
+- **Descarga con POST**: `solicitarArchivo` acepta `metodo` y `cuerpo`. Como escritura, ante un 504 no se repite sola (`SIN_RESPUESTA`).
+- **Toma**: los pasos 1–2 son una página (`/nueva`) y los pasos 3–4, el detalle (`/:id`). Así una toma registrada se puede retomar desde la lista sin perder nada.
+
+**Pendientes para la API (Sprint 12)**
+- Endpoint para **anular o recalcular una toma en BORRADOR**, para que no queden tomas sueltas al «Volver a calcular».
+- (Siguen del S10) Verificar y documentar el rol de `GET /libros/12-1/prueba-margenes` y el 409 `PERIODO_NO_CERRADO` de la descarga del 12.1.
+
+**Pendientes (web)**
+- Criterios de aceptación contra la API local con la base demo (exportar WinConta con mes cerrado, editar el tonelaje y una toma completa): los prueba el equipo (ver "Cómo probar").
+- El paquete inicial (`index-*.js`) sigue en ~506 kB, con la advertencia de 500 kB: revisar la división en el S13.
+- Capturas `S11-*.png`, solo con la base de demostración y registradas en `docs/archivos-revisados.txt`.
+- Prueba inestable por tiempo: en el cierre, `encabezado.test.tsx` ("muestra el estado del mes en curso…") falló una vez porque la batería tardó 56 s en vez de ~30 s y su `findByRole` espera 1 s. Pasa sola y en la batería repetida (370/370). En el S13, darle más espera o revisar la carga de la PC en el CI.
+
+**Cómo probar**
+```
+pnpm run lint ; pnpm test ; pnpm run build ; pnpm run revisar:datos
+pnpm run dev  →  http://localhost:5173/inventario/asientos   (API con pnpm run db:demo y pnpm run start:demo)
+```
+1. Como CONTADOR (`contadora.demo@syp.invalid`), en **Periodos** cierra un mes con movimientos. La tarjeta muestra "Asiento: Pendiente" y «Ver asientos» lleva a ese mes.
+2. En **Asientos**:
+   - revisa cada pestaña: tabla Debe/Haber, totales, «Reglas aplicadas» y, si un tipo no tiene regla, el aviso "Falta regla contable" con su exportación bloqueada;
+   - **Exportar a WinConta** con `12` y `0`: aparecen los errores en español;
+   - con `0001` y `3.750` se descarga el `.xlsx` y aparece en el historial como ✓ Vigente;
+   - en un mes abierto, el botón está deshabilitado con el motivo.
+3. Reabre ese mes, registra un cambio y vuelve a cerrarlo: el historial y Periodos muestran ⚠ Desactualizado.
+4. En **Control de tonelaje** edita las toneladas de un mes: la diferencia y su marca "Diferencia" se recalculan. Registra un mes sin reporte y descarga el Excel.
+5. En **Toma de inventario** → **Nueva toma**:
+   - fecha de un mes abierto y responsable;
+   - pesa cada producto con cantidades distintas al saldo y pulsa «Calcular diferencias»;
+   - en el detalle elige Merma para un faltante y Ajuste o Ninguna para el resto, resuelve y luego «Cerrar toma»;
+   - los enlaces llevan a la merma `00-IT-<año>` y al ajuste `00-AI-…`.
+6. Crea otra toma, registra después una compra con fecha anterior a la toma y pulsa «Resolver diferencias»: aparece "El kardex cambió…" con «Volver a calcular». La lista marca la anterior como "Reemplazada por la toma del …".
+7. En **Libro 12.1**, con un mes abierto, aparece el aviso de la marca BORRADOR junto a «Descargar PDF».
+8. Como `asistente.demo@syp.invalid` o `consulta.demo@syp.invalid` no aparecen «Exportar a WinConta», «Editar/Registrar» del tonelaje, «Nueva toma» ni el paso 4.
+
+**Revisión `revisor-ux`**: APROBADO CON OBSERVACIONES, sin hallazgos altos ni datos reales (`0015` y `3.355` no aparecen en el repo; contraste de `bg-warning/10` AA en ambos temas). Se corrigieron las 3 de severidad media:
+- Control de tonelaje: el `th` del mes con `rowSpan` pasa de `scope="rowgroup"` a `scope="row"`, porque con un solo `<tbody>` el lector anunciaba "Enero" en las filas de los meses siguientes.
+- Paso 4 de la toma: en un sobrante el radio Merma ya no se muestra (queda la nota "La merma (13) solo corresponde a faltantes."). Así, el foco del error cae en un radio habilitado. El error se asocia también al `radiogroup`.
+- Al resolver, el foco pasa al título del paso 4, donde ahora está «Cerrar toma». Antes caía en `<body>` porque el formulario se desmonta.
+
+También se corrigieron 7 de severidad baja:
+- historial ordenado por AAAA-MM (no alfabéticamente);
+- importe exacto de «Reglas aplicadas» en tooltip accesible con el teclado (antes solo `title`) y el exacto con miles;
+- `Ctrl+Enter` en Nueva toma (paso 1 avanza, paso 2 calcula);
+- foco en la Fecha tras un `PERIODO_CERRADO` de la API;
+- cabeceras "Toneladas reportadas (TN)" y "Diferencia (reportado − kardex, TN)";
+- aviso BORRADOR sin el texto repetido;
+- "Faltante de 0.2500 TN" sin doble negativo.
+- Además, «Volver a calcular» invalida también el dashboard.
+
+Bajas pendientes:
+- Pestaña de Asientos vacía sin acción (enlace a Kardex o Periodos).
+- Columna "Detalle" del boceto §5.13: `LineaAsientoDto` no trae descripción. Se pedirá el nombre de la cuenta a la API si la contadora lo necesita.
+
+**Números**: 370 pruebas en 41 archivos (+67 y +6 archivos):
+- nuevos: `asientos/esquemas` 10, `pagina-asientos` 16, `pagina-control-tonelaje` 8, `pagina-tomas` 7, `pagina-nueva-toma` 5 y `pagina-detalle-toma` 15;
+- ampliados: `pagina-libro-12-1` +2, `pagina-periodos` +1, `cliente` +1, `roles` +1 y `errores` +1.
+
+Lint sin errores (las mismas 6 advertencias previas, de shadcn y TablaDatos), build correcto y `revisar:datos` SIN DATOS REALES.

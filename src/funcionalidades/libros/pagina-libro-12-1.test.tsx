@@ -8,7 +8,7 @@ import { ErrorApi } from '@/lib/errores'
 import { reiniciarSesionParaPruebas } from '@/lib/sesion'
 import { crearApiFalsa, renderizarEnRuta } from '@/pruebas/api-falsa'
 import { productosDemo } from '@/pruebas/comprobantes-demo'
-import { impresionesDemo, libro121Demo } from '@/pruebas/libros-demo'
+import { bloque121Demo, impresionesDemo, libro121Demo } from '@/pruebas/libros-demo'
 import { periodosAnioDemo } from '@/pruebas/periodos-demo'
 
 vi.mock('@/api/cliente', () => ({ solicitar: vi.fn() }))
@@ -148,6 +148,25 @@ describe('Libro 12.1', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
     expect(await screen.findByRole('button', { name: 'Registrar impresión' })).toBeInTheDocument()
     expect(screen.queryByText('No pudimos leer el estado del mes')).not.toBeInTheDocument()
+  })
+
+  it('mes abierto (borrador del JSON): aviso de la marca BORRADOR junto a Descargar PDF y franja en la vista previa', async () => {
+    api.en('GET', '/libros/12-1', libro121Demo({
+      mes: 3, borrador: true, bloques: [bloque121Demo({ mes: 3, estadoMes: 'ABIERTO', borrador: true })],
+    }))
+    abrir(['inventario:CONSULTA'], '?anio=2026&mes=3')
+    expect(await screen.findByText(
+      'El PDF saldrá con la marca BORRADOR: no lo imprimas en las hojas legalizadas hasta cerrar el mes.',
+    )).toBeInTheDocument()
+    expect(screen.getByText('BORRADOR — MES ABIERTO · NO IMPRIMIR EN HOJAS LEGALIZADAS')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Descargar PDF del libro 12.1 de Marzo 2026' })).toBeInTheDocument()
+  })
+
+  it('mes cerrado (borrador false): sin aviso de BORRADOR', async () => {
+    abrir(['inventario:CONSULTA'])
+    await screen.findByRole('article')
+    expect(screen.queryByText(/marca BORRADOR/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/BORRADOR — MES ABIERTO/)).not.toBeInTheDocument()
   })
 
   it('sin datos: mensaje vacío; error de carga: Reintentar', async () => {

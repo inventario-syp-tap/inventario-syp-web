@@ -98,7 +98,7 @@ Se definen en `src/estilos/globals.css` con variables CSS y `@theme inline` de T
 | `/inventario/reportes/excel-contadora` | Excel formato contadora | A, C | A, C | S10 |
 | `/inventario/asientos` | Asientos y WinConta | todos | exportar A, C | S11 |
 | `/inventario/control-tonelaje` | Control de tonelaje | todos | editar A, C | S11 |
-| `/inventario/toma-inventario` | Toma de inventario | todos | crear/resolver A, C | S11 |
+| `/inventario/toma-inventario` · `/nueva` · `/:id` | Toma de inventario (lista, nueva toma y detalle) | todos (nueva: A, C) | crear/resolver/cerrar A, C | S11 |
 | `/inventario/maestros/productos` | Productos | todos | A, C | S7 |
 | `/inventario/maestros/terceros` | Clientes y proveedores | todos | A, C, S | S7 |
 | `/inventario/maestros/reglas-contables` | Reglas contables | todos | A, C | S7 |
@@ -148,6 +148,7 @@ Menú lateral (240 px, plegable a íconos):
 | `BannerServidor` | "Conectando con el servidor… (puede tardar hasta 1 minuto)" con barra indeterminada mientras el cliente reintenta |
 | `BotonDescarga` | descarga PDF/Excel como blob con el nombre de `Content-Disposition` (`filename*` o `filename`; si falta, un nombre por defecto); mientras la API genera el archivo dice "Generando…" con spinner (`aria-busy`, bloqueado con `aria-disabled`); errores en un toast que no se cierra solo: 403 sin permiso, 409 mes no cerrado y 429 límite de descargas por minuto (S10) |
 | `EstadoLibro121` | estado del libro 12.1 de un mes con ícono y texto: Pendiente · ✓ Impreso dd/mm/aaaa · ⚠ Impresión desactualizada: vuelve a imprimir ("Desactualizado" en las tarjetas de Periodos) (S10) |
+| `EstadoAsiento` | estado de la exportación a WinConta con ícono y texto, como `EstadoLibro121`: Sin asiento · Pendiente · ✓ Exportado (n.º, fecha) · ⚠ Exportación desactualizada: vuelve a exportar ("Desactualizado" en las tarjetas de Periodos) (S11) |
 | `EstadoVacio` / `EstadoError` | mensaje + acción ("Registrar compra", "Reintentar") |
 | `RutaProtegida` | exige sesión y rol (`tieneRol('inventario', …)`), si no redirige |
 
@@ -227,7 +228,7 @@ Producto ( ● FIERRO | ● INOX | ● COBRE )  Año [2026 ▾]  Mes [Marzo ▾ 
 - (Valores ilustrativos.)
 
 ### 5.9 Periodos (S9)
-Doce tarjetas por año: mes, estado, número de movimientos, compras y ventas (TN) con el detalle por producto desplegable («Por producto»), libro 12.1 (Pendiente / ✓ Impreso dd/mm/aaaa / ⚠ Desactualizado, de `PeriodoDto.libro121`, con el enlace «Ver libro 12.1» al mes) y asiento (Pendiente hasta el S11). Todo viene calculado en `PeriodoDto`; `libroImpreso` (obsoleto) ya no se usa. **Cerrar mes** (solo si el anterior está cerrado): diálogo con advertencias (saldos negativos listados desde `GET /kardex/alertas`, no bloquean; después del cierre, los que devuelve la API). Si hay movimientos con saldo cero y costo, la API rechaza el cierre (`CIERRE_CON_SALDO_CERO_CON_COSTO`) y la pantalla lista esos movimientos con enlace al kardex. **Reabrir** (solo el último cerrado): motivo obligatorio. ADMIN: **Cerrar en bloque** (desde–hasta).
+Doce tarjetas por año: mes, estado, número de movimientos, compras y ventas (TN) con el detalle por producto desplegable («Por producto»), libro 12.1 (Pendiente / ✓ Impreso dd/mm/aaaa / ⚠ Desactualizado, de `PeriodoDto.libro121`, con el enlace «Ver libro 12.1» al mes) y asiento (`EstadoAsiento` de `PeriodoDto.asiento`: Sin asiento / Pendiente / ✓ Exportado / ⚠ Desactualizado, con el enlace «Ver asientos» al mes; S11). Todo viene calculado en `PeriodoDto`; `libroImpreso` (obsoleto) ya no se usa. **Cerrar mes** (solo si el anterior está cerrado): diálogo con advertencias (saldos negativos listados desde `GET /kardex/alertas`, no bloquean; después del cierre, los que devuelve la API). Si hay movimientos con saldo cero y costo, la API rechaza el cierre (`CIERRE_CON_SALDO_CERO_CON_COSTO`) y la pantalla lista esos movimientos con enlace al kardex. **Reabrir** (solo el último cerrado): motivo obligatorio. ADMIN: **Cerrar en bloque** (desde–hasta).
 
 ### 5.10 Cierre anual y saldos iniciales (S9)
 Asistente de 3 pasos: (1) verificación de los 12 meses cerrados; (2) saldo inicial propuesto del año siguiente vs el existente, diferencias resaltadas con signo (p. ej. `+0.01`); (3) confirmación explícita ("Reemplazar el saldo inicial existente" o "Conservar los existentes", y la confirmación de stock negativo si corresponde). **Saldos iniciales**: tabla por año y producto con cantidad, C.U. (`costoUnitario` de la API, 2 decimales), total, origen (Importación, Cierre anual, Manual) y la marca ⚠ "desactualizado"; editar un SI como MANUAL exige motivo. **Nuevo saldo manual** (A, C; S10): producto (solo los activos sin saldo en el año), cantidad, costo total y motivo obligatorio; stock negativo → `DialogoStockNegativo`; `SALDO_INICIAL_YA_EXISTE` → aviso junto al producto y la tabla se recarga.
@@ -247,6 +248,7 @@ Libro 12.1   Año [2026 ▾]  Mes [Enero ▾ | Año completo]  Producto [Todos �
 - Filtros en la URL como el kardex (`?producto&anio&mes=N|todo`; sin producto = Todos). Vista previa con las cifras **tal como llegan** del JSON (ya redondeadas como en el PDF). Con un mes elegido se muestran el estado del mes, el del libro y las impresiones registradas (fecha, quién, reimpresión, vigente u obsoleta, observación).
 - **Registrar impresión** (A, C; solo meses cerrados): pide solo la observación (opcional); la fecha de hoy se muestra como informativa y la oficial es `impresoEn`, que pone el servidor. El estado pasa a ✓ Impreso. Si los datos del mes cambian después: ⚠ "Impresión desactualizada: vuelve a imprimir". Con el mes abierto, un aviso explica que se imprime después de cerrarlo en Periodos.
 - **Página de prueba de márgenes** (A, C): para imprimir en papel común y compararla con una hoja legalizada.
+- **Borrador** (S11): si el JSON trae `borrador` (algún bloque es de un mes no cerrado), junto a «Descargar PDF» aparece el aviso "El PDF saldrá con la marca BORRADOR: no lo imprimas en las hojas legalizadas hasta cerrar el mes." y cada bloque de la vista previa lleva la franja "BORRADOR — MES ABIERTO · NO IMPRIMIR EN HOJAS LEGALIZADAS", como el PDF.
 
 ### 5.12 Libro 13.1 y reportes (S10)
 - **13.1 valorizado**: filtros como el kardex (producto o todos); descarga PDF y Excel, sin tabla en pantalla (esa vista es el Kardex, que también tiene los botones «PDF 13.1» y «Excel» con sus filtros). La casilla **Detallado** solo aparece para ADMIN y CONTADOR (D-33) y solo para ellos se envía.
@@ -267,13 +269,13 @@ PROVISION COSTO DE VENTAS ENERO 2026
 └─────────────────────────────────────────────────┴──────────────┴──────────────┘
 ⚠ Salidas sin regla contable: ninguna      Historial: 0001 · 31/01/2026 · T.C. 3.700 · ✓ vigente
 ```
-(Cuentas, importes y tipo de cambio ilustrativos.) El importe exacto aparece en tooltip. Una pestaña por tipo de asiento (Ajustes reúne faltantes y sobrantes). Si un tipo tiene movimientos sin regla vigente (p. ej. desmedros o ajustes mientras no se definan sus cuentas), **Exportar** se deshabilita solo para ese tipo, con el enlace "Configurar reglas contables". **Exportar** abre un diálogo: N.° de asiento (4 dígitos), tipo de cambio (3 decimales) → descarga el `.xlsx` de 19 columnas y lo registra en el historial (⚠ "desactualizado" si el mes cambió después).
+(Cuentas, importes y tipo de cambio ilustrativos.) El importe exacto aparece en tooltip (también con el teclado). Año, mes y pestaña en la URL (`?anio&mes&grupo`; sin mes, el mes en curso) y el chip del estado del mes. Una pestaña por grupo (Costo de ventas, Mermas, Desmedros y Ajustes, que reúne faltante y sobrante en dos secciones); cada sección: glosa, comprobante, estado de la exportación (`EstadoAsiento`), tabla **Cuenta · Debe · Haber** (la API no manda una descripción por línea) con totales y "✓ Cuadra", y el desplegable **«Reglas aplicadas»** (regla, producto, operación, cuentas e importe). Si un tipo tiene movimientos sin regla vigente, aviso **"Falta regla contable"** con la lista (fecha, documento, producto, operación, cantidad y costo), el enlace "Configurar reglas contables" y ⚠ en la pestaña; **Exportar** se deshabilita solo para ese tipo. Si `exportable` es false, se muestra el motivo de la API (mes abierto: "esto es una vista previa…"; falta regla; sin líneas). **Exportar a WinConta** (A, C) abre un diálogo: N.° de asiento (exactamente 4 dígitos) y tipo de cambio (> 0, hasta 3 decimales), validados con zod → descarga el `.xlsx` de 19 columnas con el manejo de descargas del S10. Debajo, el **historial de exportaciones del año** (mes, tipo, n.º, T.C., total, quién y cuándo) con estado ✓ Vigente · ⚠ Desactualizado: vuelve a exportar · Reemplazada.
 
 ### 5.14 Control de tonelaje (S11)
-Tabla por mes: Mes · Toneladas reportadas (editable, A y C) · Fuente · Compras del kardex (TN) · Diferencia (≠ 0: fondo `warning` suave + ícono + texto "Diferencia") · Observación. Descarga Excel.
+Tabla de los 12 meses: Mes · Toneladas reportadas · Fuente · Compras del kardex (TN) · Diferencia (con diferencia: fondo `warning` suave + ícono + texto "Diferencia" y la cifra; sin diferencia: ✓ "Sin diferencia") · Observación (y la nota del reporte). Un mes puede tener varios reportes (uno por fuente), cada uno en su fila; sin reporte, "Sin reporte". Aviso con los meses con diferencia. **Editar** / **Registrar** por mes (A, C): toneladas (4 decimales), fuente ("REPORTE EXTERNO" por defecto, fija al editar un reporte existente) y observación. **Descargar Excel** (todos).
 
 ### 5.15 Toma de inventario (S11)
-Lista de tomas (fecha, responsable, estado). **Nueva toma** — asistente: (1) fecha y responsable; (2) cantidad contada (pesada) por producto; (3) diferencias: saldo del sistema a esa fecha, contado, diferencia; (4) acción por producto: **Merma (13)** con sustento, **Ajuste (28)** o **Ninguna** con observación → "Resolver" genera los comprobantes enlazados. Recordatorio anual en el dashboard desde noviembre (no obligatorio).
+**Lista** por año: fecha, responsable, productos con diferencia, estado (Borrador · Resuelta, falta cerrarla · 🔒 Cerrada) y comprobantes generados (enlaces). Una toma en BORRADOR con otra posterior de la misma fecha (creada al «Volver a calcular») se marca **"Reemplazada por la toma del <fecha y hora>"** (ícono + texto) y desde la lista no se ofrece resolverla. **Nueva toma** (A, C) — asistente con indicador de pasos y el foco en el título de cada paso: (1) fecha, responsable (nombre o cargo) y observación, con aviso si el mes está cerrado; (2) cantidad contada (pesada) por producto activo → «Calcular diferencias» registra la toma; (3) en el detalle, diferencias: saldo del sistema a esa fecha, contado, diferencia y tipo (↓ Faltante · ↑ Sobrante · = Sin diferencia; "Dentro de la tolerancia"); (4) acción por producto con diferencia: **Merma (13)** (solo faltantes; sustento del informe técnico y año del informe), **Ajuste (28)** (sustento del acta) o **Ninguna** (observación) → «Resolver diferencias» genera los comprobantes enlazados; después, **Cerrar toma** con confirmación. Stock negativo → `DialogoStockNegativo`. `TOMA_DESACTUALIZADA` → aviso con **Volver a calcular** (toma nueva con la misma fecha, responsable y cantidades). Recordatorio anual en el dashboard desde noviembre (no obligatorio).
 
 ### 5.16 Maestros (S7)
 Tablas con búsqueda y diálogo de edición:
@@ -360,7 +362,14 @@ Dos tarjetas: **Descargar respaldo completo** (`.dump`, para restaurar con `pg_r
 | `REORDEN_FUERA_DE_FECHA` | Solo se puede mover dentro de la misma fecha. |
 | `HISTORICO_YA_CARGADO` | El histórico 2024–2026 ya está cargado en esta base. |
 | `NO_DISPONIBLE_EN_DEMO` | No disponible en la base de demostración. |
-| `REGLA_CONTABLE_FALTANTE` | Hay movimientos sin regla contable: configúrala en Maestros → Reglas contables. |
+| `REGLA_CONTABLE_FALTANTE` | Hay movimientos sin regla contable: configúrala en Maestros → Reglas contables. (Al exportar: "Hay movimientos de este tipo sin regla contable vigente: configúrala en Maestros → Reglas contables y vuelve a exportar.") |
+| `ASIENTO_VACIO` | Este asiento no tiene líneas en el mes: no hay nada que exportar. |
+| `PERIODO_NO_CERRADO` al exportar a WinConta | Ese mes aún no está cerrado: el asiento se exporta a WinConta después de cerrarlo en Periodos. |
+| `TOMA_DESACTUALIZADA` | El kardex cambió después de registrar esta toma: las diferencias ya no son las del saldo actual. Vuelve a calcularla. (Aviso con «Volver a calcular») |
+| `TOMA_CON_DIFERENCIAS_PENDIENTES` | Todavía hay productos con diferencia sin una acción. Resuélvelos antes de cerrar la toma. |
+| `TOMA_YA_CERRADA` · `TOMA_YA_RESUELTA` | Esta toma ya está cerrada: no se puede modificar. · Las diferencias de esta toma ya se resolvieron. |
+| `ACCION_NO_CORRESPONDE` | La acción no corresponde a la diferencia: la merma solo se usa con faltantes. |
+| `OBSERVACION_REQUERIDA` | Indica una observación para los productos que quedan sin acción. |
 | `CREDENCIALES_INVALIDAS` | Correo o contraseña incorrectos. Tras 5 intentos fallidos la cuenta se bloquea 15 minutos. |
 | `DEMASIADAS_SOLICITUDES` | Demasiados intentos seguidos. Espera un minuto y vuelve a intentarlo. |
 | `ERROR_INTERNO` | Ocurrió un error inesperado. Intenta de nuevo; si continúa, avisa al administrador (código {requestId}). |

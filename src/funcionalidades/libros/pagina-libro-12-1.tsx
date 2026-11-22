@@ -2,6 +2,8 @@
 // producto o todos) y el modo del año (AGRUPADO o DETALLADO). Vista previa que imita la hoja A4 horizontal con el
 // JSON de la API, Descargar PDF (todos), Página de prueba de márgenes (A, C) y Registrar impresión (A, C; solo meses
 // cerrados). Estado del mes: Pendiente / ✓ Impreso / ⚠ Impresión desactualizada: vuelve a imprimir.
+// Si el JSON trae `borrador` (algún bloque es de un mes no cerrado, S11), junto a Descargar PDF se avisa que el PDF
+// sale con la marca BORRADOR.
 import { Link } from 'react-router'
 import { FileCheckIcon, PrinterIcon, RulerIcon } from 'lucide-react'
 import { FiltrosLibro } from './filtros-libro'
@@ -91,6 +93,10 @@ export function PaginaLibro121() {
           </>
         )}
       />
+
+      {libro.data?.borrador && (
+        <Aviso tono="advertencia" titulo="El PDF saldrá con la marca BORRADOR: no lo imprimas en las hojas legalizadas hasta cerrar el mes." />
+      )}
 
       <FiltrosLibro filtros={filtros} cambiar={cambiar} />
 

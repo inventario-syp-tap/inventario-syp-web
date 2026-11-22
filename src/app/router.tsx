@@ -6,9 +6,10 @@ import { LayoutApp, type DatosRuta } from './layout/layout-app'
 import { PaginaNoEncontrada } from './pagina-no-encontrada'
 import { INICIO, PAGINAS_DEL_MODULO, RAIZ_MODULO } from './paginas'
 import {
-  CargandoPantalla, PaginaAjuste, PaginaCierreAnual, PaginaCompra, PaginaComprobantes, PaginaConfiguracion,
-  PaginaDetalleComprobante, PaginaEstablecimientos, PaginaExcelContadora, PaginaKardex, PaginaLibro121, PaginaLibro131, PaginaMerma,
-  PaginaPeriodos, PaginaProductos, PaginaReglas, PaginaReporte, PaginaSaldosIniciales, PaginaTerceros, PaginaUsuarios, PaginaVenta,
+  CargandoPantalla, PaginaAjuste, PaginaAsientos, PaginaCierreAnual, PaginaCompra, PaginaComprobantes, PaginaConfiguracion,
+  PaginaControlTonelaje, PaginaDetalleComprobante, PaginaDetalleToma, PaginaEstablecimientos, PaginaExcelContadora, PaginaKardex,
+  PaginaLibro121, PaginaLibro131, PaginaMerma, PaginaNuevaToma, PaginaPeriodos, PaginaProductos, PaginaReglas, PaginaReporte,
+  PaginaSaldosIniciales, PaginaTerceros, PaginaTomas, PaginaUsuarios, PaginaVenta,
 } from './pantallas-diferidas'
 import { RaizApp } from './raiz-app'
 import { RutaProtegida } from './ruta-protegida'
@@ -49,6 +50,11 @@ const PANTALLAS: Record<string, ReactNode> = {
   [`${RAIZ_MODULO}/reportes/resumen-anual`]: diferida(<PaginaReporte key="resumen-anual" tipo="resumen-anual" />),
   [`${RAIZ_MODULO}/reportes/margen`]: diferida(<PaginaReporte key="margen" tipo="margen" />),
   [`${RAIZ_MODULO}/reportes/excel-contadora`]: diferida(<PaginaExcelContadora />),
+  [`${RAIZ_MODULO}/asientos`]: diferida(<PaginaAsientos />),
+  [`${RAIZ_MODULO}/control-tonelaje`]: diferida(<PaginaControlTonelaje />),
+  [`${RAIZ_MODULO}/toma-inventario`]: diferida(<PaginaTomas />),
+  [`${RAIZ_MODULO}/toma-inventario/nueva`]: diferida(<PaginaNuevaToma />),
+  [`${RAIZ_MODULO}/toma-inventario/:id`]: diferida(<PaginaDetalleToma />),
 }
 
 export const rutas: RouteObject[] = [

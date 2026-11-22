@@ -98,6 +98,8 @@ export const GRUPOS_MENU: GrupoMenu[] = [
 export const PAGINAS_FUERA_DEL_MENU: Pagina[] = [
   p('comprobantes/:id', 'Detalle del comprobante', TODOS, FileStack, 8),
   p('periodos/cierre-anual', 'Cierre anual', A_C, ShieldCheck, 9),
+  p('toma-inventario/nueva', 'Nueva toma de inventario', A_C, ClipboardList, 11),
+  p('toma-inventario/:id', 'Detalle de la toma', TODOS, ClipboardList, 11),
 ]
 
 /** Todas las páginas del módulo menos Inicio. */
